@@ -93,14 +93,24 @@ const App: React.FC = () => {
     }));
   };
 
-  const handleAddEvent = async (newEventData: Omit<Event, 'id'>) => {
+  const handleAddEvent = async (newEventData: Omit<Event, 'id'>): Promise<boolean> => {
     try {
       const createdEvent = await eventService.createEvent(newEventData);
       if (createdEvent) {
+         // Adiciona o evento à lista local
          setEvents(prev => [createdEvent, ...prev]);
+         
+         // Redireciona para a HOME para ver o evento na lista
+         setHistory([UserRole.USER]);
+         setHistoryIndex(0);
+         window.scrollTo(0, 0);
+         return true;
       }
+      return false;
     } catch (error) {
+      console.error(error);
       alert("Erro ao criar evento no banco de dados.");
+      return false;
     }
   };
 

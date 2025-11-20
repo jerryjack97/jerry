@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef } from 'react';
 import { Event, Plan, OrganizerProfile } from '../types';
 import { SUBSCRIPTION_PLANS } from '../constants';
@@ -8,7 +7,7 @@ import { Check, Loader2, Sparkles, Zap, Phone, CreditCard, ArrowLeft, Upload, Im
 interface OrganizerProps {
   organizer: OrganizerProfile;
   onSubscribe: (planId: string) => void;
-  onAddEvent: (event: Omit<Event, 'id'>) => void;
+  onAddEvent: (event: Omit<Event, 'id'>) => Promise<boolean>;
 }
 
 export const Organizer: React.FC<OrganizerProps> = ({ organizer, onSubscribe, onAddEvent }) => {
@@ -155,7 +154,7 @@ const SubscriptionSection: React.FC<{ onSubscribe: (id: string) => void }> = ({ 
   );
 };
 
-const CreateEventSection: React.FC<{ onAddEvent: (event: Omit<Event, 'id'>) => void }> = ({ onAddEvent }) => {
+const CreateEventSection: React.FC<{ onAddEvent: (event: Omit<Event, 'id'>) => Promise<boolean> }> = ({ onAddEvent }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [details, setDetails] = useState('');
@@ -165,6 +164,7 @@ const CreateEventSection: React.FC<{ onAddEvent: (event: Omit<Event, 'id'>) => v
   const [whatsapp, setWhatsapp] = useState('');
   const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -196,9 +196,13 @@ const CreateEventSection: React.FC<{ onAddEvent: (event: Omit<Event, 'id'>) => v
     fileInputRef.current?.click();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onAddEvent({
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    
+    const success = await onAddEvent({
       title,
       description,
       date,
@@ -209,16 +213,15 @@ const CreateEventSection: React.FC<{ onAddEvent: (event: Omit<Event, 'id'>) => v
       organizerWhatsapp: whatsapp.replace(/\D/g, ''), // Remove non-digits
       highlighted: true 
     });
-    alert('Evento criado com sucesso!');
-    setTitle('');
-    setDescription('');
-    setDetails('');
-    setDate('');
-    setLocation('');
-    setPrice('');
-    setWhatsapp('');
-    // Reset image to default or keep last used? Resetting to default placeholder.
-    setImageUrl('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80');
+
+    setIsSubmitting(false);
+
+    if (success) {
+      alert('Evento criado com sucesso! Redirecionando para a página inicial...');
+      // Não precisamos limpar o form manualmente pois haverá redirecionamento
+    } else {
+      alert('Erro ao criar evento. Tente novamente.');
+    }
   };
 
   const inputClass = "w-full bg-black/50 border border-gray-700 rounded-xl p-4 text-white focus:border-unikiala-pink focus:ring-1 focus:ring-unikiala-pink outline-none transition-all";
@@ -398,9 +401,17 @@ const CreateEventSection: React.FC<{ onAddEvent: (event: Omit<Event, 'id'>) => v
 
           <button
             type="submit"
-            className="w-full bg-unikiala-pink text-black font-bold text-lg py-4 rounded-xl hover:bg-white hover:shadow-neon transition-all duration-300"
+            disabled={isSubmitting}
+            className="w-full bg-unikiala-pink text-black font-bold text-lg py-4 rounded-xl hover:bg-white hover:shadow-neon transition-all duration-300 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Publicar Atividade
+            {isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin mr-2 w-6 h-6" />
+                Publicando Atividade...
+              </>
+            ) : (
+              'Publicar Atividade'
+            )}
           </button>
         </form>
       </div>
