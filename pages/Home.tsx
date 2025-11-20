@@ -1,0 +1,470 @@
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Event } from '../types';
+import { Calendar, MapPin, Search, ArrowRight, X, Truck, Store, MessageCircle, DollarSign, Map as MapIcon } from 'lucide-react';
+
+// Declare Leaflet global to avoid TS errors since we import it via CDN
+declare const L: any;
+
+interface HomeProps {
+  events: Event[];
+}
+
+export const Home: React.FC<HomeProps> = ({ events }) => {
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(amount);
+  };
+
+  const handleBuyClick = (event: Event) => {
+    setSelectedEvent(event);
+    setIsCheckoutOpen(true);
+  };
+
+  const closeCheckout = () => {
+    setIsCheckoutOpen(false);
+    setSelectedEvent(null);
+  };
+
+  const featuredEvents = events.filter(e => e.highlighted);
+  const regularEvents = events.filter(e => !e.highlighted);
+
+  return (
+    <div className="pb-20 relative">
+      {/* Checkout Modal */}
+      {isCheckoutOpen && selectedEvent && (
+        <CheckoutModal 
+          event={selectedEvent} 
+          onClose={closeCheckout} 
+          formatCurrency={formatCurrency} 
+        />
+      )}
+
+      {/* Hero Section - Responsive Adjustments */}
+      <div className="relative min-h-[80vh] md:h-[600px] w-full overflow-hidden flex items-center justify-center mb-12 md:mb-16">
+        {/* Background Image with Gradient Overlay */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center z-0 scale-105"
+          style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=2070&auto=format&fit=crop")' }}
+        ></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-unikiala-black via-black/80 to-black/40 z-10"></div>
+        
+        {/* Hero Content */}
+        <div className="relative z-20 max-w-4xl mx-auto text-center px-4 mt-16 md:mt-10 flex flex-col justify-center h-full">
+          <div className="inline-block px-4 py-1 border border-unikiala-pink/50 rounded-full bg-black/50 backdrop-blur-md mb-4 md:mb-6 self-center">
+            <span className="text-unikiala-pink font-bold text-xs md:text-sm tracking-widest uppercase">A Cultura vive aqui</span>
+          </div>
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-display font-bold text-white mb-4 md:mb-6 leading-tight">
+            Descubra a Alma <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-unikiala-pink to-purple-600">Vibrante de Angola</span>
+          </h1>
+          <p className="text-gray-300 text-base md:text-xl max-w-2xl mx-auto mb-8 md:mb-10 font-light px-2">
+            Garanta seu lugar nos melhores concertos, teatros e exposições. Viva experiências inesquecíveis.
+          </p>
+          
+          {/* Search Bar Mockup - Responsive Stack */}
+          <div className="w-full max-w-2xl mx-auto bg-black/40 md:bg-white/10 backdrop-blur-lg border border-white/20 p-3 rounded-3xl md:rounded-full flex flex-col md:flex-row items-center shadow-2xl gap-3 md:gap-0">
+            <div className="flex items-center w-full md:w-auto flex-grow">
+              <Search className="text-gray-400 w-5 h-5 ml-2 md:ml-4" />
+              <input 
+                type="text" 
+                placeholder="Busque por evento, artista ou local..." 
+                className="flex-grow bg-transparent border-none focus:ring-0 text-white placeholder-gray-400 px-4 h-10 outline-none w-full text-sm md:text-base"
+              />
+            </div>
+            <button className="w-full md:w-auto bg-unikiala-pink hover:bg-unikiala-pinkDim text-black font-bold px-8 py-3 rounded-xl md:rounded-full transition-all shadow-neon hover:shadow-neon-hover">
+              Explorar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* MAP SECTION */}
+        <section className="mb-12 md:mb-20 animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="flex items-center mb-6 md:mb-8">
+             <div className="p-2 bg-unikiala-pink/20 rounded-full mr-4 border border-unikiala-pink/50">
+               <MapIcon className="w-6 h-6 text-unikiala-pink" />
+             </div>
+             <div>
+                <h2 className="text-2xl md:text-3xl font-display font-bold text-white">Mapa de Eventos</h2>
+                <p className="text-gray-400 text-sm">Encontre atividades culturais perto de si</p>
+             </div>
+          </div>
+          <div className="h-[350px] md:h-[450px] w-full rounded-3xl overflow-hidden border border-white/10 shadow-neon relative z-0">
+            <EventMap events={events} onEventClick={handleBuyClick} />
+          </div>
+        </section>
+
+        {/* Destaques Section */}
+        {featuredEvents.length > 0 && (
+          <section className="mb-12 md:mb-20">
+            <div className="flex items-end justify-between mb-6 md:mb-8">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-2">Em Destaque</h2>
+                <div className="h-1 w-20 bg-unikiala-pink rounded-full"></div>
+              </div>
+              <button className="hidden md:flex items-center text-unikiala-pink hover:text-white transition-colors font-bold text-sm">
+                Ver todos <ArrowRight className="w-4 h-4 ml-2" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+              {featuredEvents.map((event) => (
+                <EventCard 
+                  key={event.id} 
+                  event={event} 
+                  formatCurrency={formatCurrency} 
+                  featured 
+                  onBuy={() => handleBuyClick(event)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Todos Eventos Section */}
+        <section>
+          <h2 className="text-2xl md:text-3xl font-display font-bold text-white mb-6 md:mb-8 flex items-center">
+            <span className="w-1.5 md:w-2 h-6 md:h-8 bg-gray-700 mr-3 md:mr-4 rounded-full"></span>
+            Próximos Eventos
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            {regularEvents.map((event) => (
+              <EventCard 
+                key={event.id} 
+                event={event} 
+                formatCurrency={formatCurrency}
+                onBuy={() => handleBuyClick(event)}
+              />
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+};
+
+// --- Map Component ---
+const EventMap: React.FC<{ events: Event[]; onEventClick: (e: Event) => void }> = ({ events, onEventClick }) => {
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+
+    // Default to Luanda
+    const defaultLat = -8.839988;
+    const defaultLng = 13.289437;
+
+    if (!mapInstanceRef.current) {
+      // Initialize map
+      const map = L.map(mapContainerRef.current).setView([defaultLat, defaultLng], 13);
+      
+      // Use CartoDB Dark Matter tiles for the neon theme
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+      }).addTo(map);
+
+      mapInstanceRef.current = map;
+    }
+
+    const map = mapInstanceRef.current;
+
+    // Clear existing markers logic would go here if we had updates, 
+    // but for simplicity in this demo we just add them.
+    // Ideally we'd keep a ref to markers array.
+
+    events.forEach(event => {
+      if (event.coordinates) {
+        // Custom circle marker to fit theme
+        const marker = L.circleMarker([event.coordinates.lat, event.coordinates.lng], {
+          radius: 8,
+          fillColor: '#FF00FF', // Unikiala Pink
+          color: '#fff',
+          weight: 1,
+          opacity: 1,
+          fillOpacity: 0.8
+        }).addTo(map);
+
+        // Bind Popup
+        const popupContent = `
+          <div style="font-family: 'Outfit', sans-serif; color: #000; text-align: center;">
+            <h3 style="font-weight: bold; margin-bottom: 5px;">${event.title}</h3>
+            <p style="font-size: 12px; margin-bottom: 8px;">${event.location}</p>
+            <button id="btn-${event.id}" style="background-color: #FF00FF; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-weight: bold; cursor: pointer;">
+              Ver Detalhes
+            </button>
+          </div>
+        `;
+
+        marker.bindPopup(popupContent);
+
+        // Handle popup open to attach event listener to button
+        marker.on('popupopen', () => {
+          const btn = document.getElementById(`btn-${event.id}`);
+          if (btn) {
+            btn.onclick = () => {
+               onEventClick(event);
+               map.closePopup();
+            };
+          }
+        });
+      }
+    });
+
+    // Cleanup
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [events, onEventClick]);
+
+  return <div ref={mapContainerRef} className="w-full h-full bg-[#050505]" />;
+};
+
+interface CheckoutModalProps {
+  event: Event;
+  onClose: () => void;
+  formatCurrency: (v: number) => string;
+}
+
+const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCurrency }) => {
+  const [name, setName] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
+  const [deliveryZone, setDeliveryZone] = useState<'inside' | 'outside'>('inside');
+
+  // Taxas
+  const TAX_INSIDE = 2000;
+  const TAX_OUTSIDE = 5000;
+
+  const getDeliveryFee = () => {
+    if (deliveryMethod === 'pickup') return 0;
+    return deliveryZone === 'inside' ? TAX_INSIDE : TAX_OUTSIDE;
+  };
+
+  const total = (event.price * quantity) + getDeliveryFee();
+
+  const handleCheckout = () => {
+    if (!name) {
+      alert("Por favor, insira seu nome.");
+      return;
+    }
+
+    const deliveryText = deliveryMethod === 'pickup' 
+      ? 'Levantamento Presencial (Sem taxa)' 
+      : `Delivery (${deliveryZone === 'inside' ? 'Mesma Província' : 'Outra Província'})`;
+
+    const message = `*NOVO PEDIDO - UNIKIALA*\n\n` +
+      `🎟 *Evento:* ${event.title}\n` +
+      `📍 *Local:* ${event.location}\n` +
+      `📅 *Data:* ${new Date(event.date).toLocaleDateString()}\n` +
+      `--------------------------------\n` +
+      `👤 *Cliente:* ${name}\n` +
+      `🔢 *Qtd:* ${quantity}\n` +
+      `🚚 *Entrega:* ${deliveryText}\n` +
+      `💰 *Total:* ${formatCurrency(total)}\n\n` +
+      `Gostaria de finalizar o pagamento.`;
+
+    const whatsappUrl = `https://wa.me/${event.organizerWhatsapp}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose}></div>
+      
+      {/* Responsive Modal Container: Full width bottom sheet on mobile, centered modal on desktop */}
+      <div className="relative bg-unikiala-surface border-t md:border border-white/10 rounded-t-3xl md:rounded-3xl w-full max-w-md shadow-neon overflow-hidden animate-in slide-in-from-bottom-10 md:zoom-in duration-300 flex flex-col max-h-[90vh]">
+        
+        <div className="bg-gradient-to-r from-unikiala-pink/20 to-purple-900/20 p-4 md:p-6 border-b border-white/10 flex justify-between items-start shrink-0">
+          <div>
+            <h3 className="text-lg md:text-xl font-display font-bold text-white mb-1">Finalizar Compra</h3>
+            <p className="text-gray-400 text-xs md:text-sm">{event.title}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white p-1 bg-white/5 rounded-full">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto custom-scrollbar">
+          {/* Resumo do Evento (Dados Obrigatórios) */}
+          <div className="bg-white/5 rounded-xl p-4 border border-white/5 space-y-2">
+            <h4 className="text-xs font-bold text-unikiala-pink uppercase mb-2">Detalhes do Evento</h4>
+            <div className="flex items-center text-sm text-gray-300">
+              <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+              <span>{new Date(event.date).toLocaleDateString('pt-AO')}</span>
+            </div>
+            <div className="flex items-center text-sm text-gray-300">
+              <MapPin className="w-4 h-4 mr-2 text-gray-500" />
+              <span>{event.location}</span>
+            </div>
+             <div className="flex items-center text-sm text-gray-300">
+              <DollarSign className="w-4 h-4 mr-2 text-gray-500" />
+              <span>{formatCurrency(event.price)} / pessoa</span>
+            </div>
+          </div>
+
+          {/* Nome */}
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Seu Nome</label>
+            <input 
+              type="text" 
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full bg-black/50 border border-gray-700 rounded-xl p-3 text-white focus:border-unikiala-pink outline-none"
+              placeholder="Digite seu nome completo"
+            />
+          </div>
+
+          {/* Quantidade */}
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Quantidade</label>
+            <div className="flex items-center space-x-4">
+              <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/20 text-white font-bold">-</button>
+              <span className="text-xl font-bold text-white">{quantity}</span>
+              <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/20 text-white font-bold">+</button>
+            </div>
+          </div>
+
+          {/* Método de Entrega */}
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Entrega</label>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <button 
+                onClick={() => setDeliveryMethod('pickup')}
+                className={`p-3 rounded-xl border flex flex-col items-center justify-center transition-all ${deliveryMethod === 'pickup' ? 'bg-unikiala-pink/10 border-unikiala-pink text-white' : 'bg-black/30 border-gray-800 text-gray-500'}`}
+              >
+                <Store className="w-6 h-6 mb-1" />
+                <span className="text-xs font-bold">Levantamento</span>
+              </button>
+              <button 
+                onClick={() => setDeliveryMethod('delivery')}
+                className={`p-3 rounded-xl border flex flex-col items-center justify-center transition-all ${deliveryMethod === 'delivery' ? 'bg-unikiala-pink/10 border-unikiala-pink text-white' : 'bg-black/30 border-gray-800 text-gray-500'}`}
+              >
+                <Truck className="w-6 h-6 mb-1" />
+                <span className="text-xs font-bold">Delivery</span>
+              </button>
+            </div>
+
+            {deliveryMethod === 'delivery' && (
+              <div className="bg-white/5 p-3 rounded-xl space-y-2 animate-in slide-in-from-top-2">
+                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-white/5 rounded-lg">
+                  <div className="flex items-center">
+                    <input 
+                      type="radio" 
+                      name="zone" 
+                      checked={deliveryZone === 'inside'} 
+                      onChange={() => setDeliveryZone('inside')}
+                      className="mr-3 accent-unikiala-pink" 
+                    />
+                    <span className="text-sm text-gray-300">Na Província</span>
+                  </div>
+                  <span className="text-sm font-bold text-unikiala-pink">+2.000 Kzs</span>
+                </label>
+                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-white/5 rounded-lg">
+                  <div className="flex items-center">
+                    <input 
+                      type="radio" 
+                      name="zone" 
+                      checked={deliveryZone === 'outside'} 
+                      onChange={() => setDeliveryZone('outside')}
+                      className="mr-3 accent-unikiala-pink" 
+                    />
+                    <span className="text-sm text-gray-300">Fora da Província</span>
+                  </div>
+                  <span className="text-sm font-bold text-unikiala-pink">+5.000 Kzs</span>
+                </label>
+              </div>
+            )}
+          </div>
+
+          {/* Resumo */}
+          <div className="border-t border-white/10 pt-4 space-y-2">
+            <div className="flex justify-between text-sm text-gray-400">
+              <span>Ingressos ({quantity}x)</span>
+              <span>{formatCurrency(event.price * quantity)}</span>
+            </div>
+            {deliveryMethod === 'delivery' && (
+              <div className="flex justify-between text-sm text-gray-400">
+                <span>Taxa de Entrega</span>
+                <span>{formatCurrency(getDeliveryFee())}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-xl font-bold text-white pt-2">
+              <span>Total</span>
+              <span className="text-unikiala-pink">{formatCurrency(total)}</span>
+            </div>
+          </div>
+
+          <button 
+            onClick={handleCheckout}
+            className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-black font-bold py-4 rounded-xl flex items-center justify-center transition-all shadow-lg hover:shadow-green-900/50"
+          >
+            <MessageCircle className="w-5 h-5 mr-2" />
+            Confirmar no WhatsApp
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const EventCard: React.FC<{ event: Event; formatCurrency: (v: number) => string; featured?: boolean; onBuy: () => void }> = ({ event, formatCurrency, featured, onBuy }) => (
+  <div className={`
+    group relative bg-unikiala-surface rounded-2xl overflow-hidden flex flex-col
+    ${featured ? 'border border-unikiala-pink/30 hover:border-unikiala-pink' : 'border border-white/5 hover:border-white/20'} 
+    transition-all duration-500 hover:-translate-y-2
+    ${featured ? 'hover:shadow-neon' : 'hover:shadow-2xl'}
+  `}>
+    <div className="relative h-48 sm:h-56 md:h-64 overflow-hidden flex-shrink-0">
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60 z-10"></div>
+      <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+      
+      <div className="absolute top-4 right-4 z-20 bg-black/60 backdrop-blur-md border border-white/10 text-white font-bold px-3 py-1 rounded-lg text-xs md:text-sm">
+        {formatCurrency(event.price)}
+      </div>
+      
+      <div className="absolute bottom-4 left-4 z-20">
+        <span className="bg-unikiala-pink text-black text-[10px] md:text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">
+          {event.highlighted ? 'Destaque' : 'Evento'}
+        </span>
+      </div>
+    </div>
+    
+    <div className="p-4 md:p-6 relative flex flex-col flex-grow">
+      <h3 className="text-lg md:text-xl font-display font-bold text-white mb-3 leading-tight group-hover:text-unikiala-pink transition-colors line-clamp-2">
+        {event.title}
+      </h3>
+      
+      <div className="space-y-2 mb-4 flex-grow">
+        <div className="flex items-center text-gray-400 text-xs md:text-sm">
+          <Calendar className="w-4 h-4 mr-2 text-unikiala-pink shrink-0" />
+          <span>{new Date(event.date).toLocaleDateString('pt-AO', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+        </div>
+        <div className="flex items-center text-gray-400 text-xs md:text-sm">
+          <MapPin className="w-4 h-4 mr-2 text-unikiala-pink shrink-0" />
+          <span className="truncate">{event.location}</span>
+        </div>
+      </div>
+
+      <p className="text-gray-500 text-xs md:text-sm mb-6 line-clamp-2">{event.description}</p>
+      
+      <button 
+        onClick={onBuy}
+        className="w-full py-3 rounded-xl bg-white/5 hover:bg-unikiala-pink text-white hover:text-black font-bold border border-white/10 hover:border-unikiala-pink transition-all duration-300 mt-auto text-sm md:text-base"
+      >
+        Comprar Ingresso
+      </button>
+    </div>
+  </div>
+);
