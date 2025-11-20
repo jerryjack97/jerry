@@ -1,11 +1,29 @@
 import { User, UserRole } from '../types';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 
-// Mock user para quando não houver DB conectado
+// Helper para ler variáveis de ambiente
+const getEnv = (key: string) => {
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+    // @ts-ignore
+    return import.meta.env[key];
+  }
+  // @ts-ignore
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    // @ts-ignore
+    return process.env[key];
+  }
+  return '';
+};
+
+// Credenciais de Admin (Vercel Env Vars ou Padrão)
+const ADMIN_EMAIL = getEnv('VITE_ADMIN_EMAIL') || 'admin@unikiala.com';
+const ADMIN_PASSWORD = getEnv('VITE_ADMIN_PASSWORD') || 'admin123';
+
 const MOCK_ADMIN: User = {
   id: 'mock-admin',
-  email: 'admin@unikiala.com',
-  name: 'Admin Demo',
+  email: ADMIN_EMAIL,
+  name: 'Administrador',
   password: '',
   role: UserRole.ADMIN,
   isVerified: true
@@ -13,13 +31,17 @@ const MOCK_ADMIN: User = {
 
 export const authService = {
   login: async (email: string, password: string): Promise<{ user?: User; error?: string }> => {
-    if (!isSupabaseConfigured) {
-      if (email === 'admin@unikiala.com' && password === 'admin123') {
-        return { user: MOCK_ADMIN };
-      }
-      return { error: 'Banco de dados não configurado. Use admin@unikiala.com / admin123 para testar.' };
+    // 1. Verificação de Admin Prioritária (Funciona sem Banco de Dados)
+    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      return { user: MOCK_ADMIN };
     }
 
+    // 2. Verificação de Configuração do Banco
+    if (!isSupabaseConfigured) {
+      return { error: 'Banco de dados não configurado. Aguardando conexão.' };
+    }
+
+    // 3. Login Normal via Supabase
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -146,6 +168,7 @@ export const authService = {
   },
 
   getCurrentUser: async (): Promise<User | null> => {
+    // Se não houver DB, não há sessão persistida (exceto se implementarmos mock local, mas vamos manter simples)
     if (!isSupabaseConfigured) return null;
 
     const { data: { session } } = await supabase.auth.getSession();
