@@ -217,8 +217,7 @@ const CreateEventSection: React.FC<{ onAddEvent: (event: Omit<Event, 'id'>) => P
     setIsSubmitting(false);
 
     if (success) {
-      alert('Evento criado com sucesso! Redirecionando para a página inicial...');
-      // Não precisamos limpar o form manualmente pois haverá redirecionamento
+      alert('Evento publicado com sucesso!');
     } else {
       alert('Erro ao criar evento. Tente novamente.');
     }

@@ -1,19 +1,34 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Event, OrganizerProfile } from '../types';
-import { BarChart, DollarSign, Users, Activity } from 'lucide-react';
+import { BarChart, DollarSign, Users, Activity, Database, Wifi, WifiOff, Trash2 } from 'lucide-react';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { checkConnection, isSupabaseConfigured } from '../services/supabaseClient';
 
 interface AdminProps {
   events: Event[];
   organizers: OrganizerProfile[];
+  onDeleteEvent?: (id: string) => void;
 }
 
-export const Admin: React.FC<AdminProps> = ({ events, organizers }) => {
+export const Admin: React.FC<AdminProps> = ({ events, organizers, onDeleteEvent }) => {
   
   const totalRevenue = organizers.filter(o => o.isSubscribed).length * 500000; 
   const activeEvents = events.length;
   const totalOrganizers = organizers.length;
+
+  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'local' | 'error'>('checking');
+
+  useEffect(() => {
+    const verifyDb = async () => {
+      if (!isSupabaseConfigured) {
+        setDbStatus('local');
+        return;
+      }
+      const connected = await checkConnection();
+      setDbStatus(connected ? 'connected' : 'error');
+    };
+    verifyDb();
+  }, []);
 
   const chartData = [
     { name: 'Jan', events: 4 },
@@ -27,10 +42,30 @@ export const Admin: React.FC<AdminProps> = ({ events, organizers }) => {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 md:mb-12 gap-4">
-        <h1 className="text-3xl md:text-4xl font-display font-bold text-white">Dashboard Administrativo</h1>
-        <div className="flex items-center space-x-2 text-sm text-gray-400 bg-unikiala-surface px-4 py-2 rounded-full border border-white/5 w-fit">
-           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-           <span>Sistema Operacional</span>
+        <div>
+          <h1 className="text-3xl md:text-4xl font-display font-bold text-white">Dashboard Administrativo</h1>
+          <p className="text-gray-400 text-sm mt-1">Visão geral do sistema e métricas de performance.</p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {/* Indicador de Status do Banco de Dados */}
+          <div className={`flex items-center space-x-2 text-sm px-4 py-2 rounded-full border transition-colors ${
+            dbStatus === 'connected' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
+            dbStatus === 'local' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' :
+            dbStatus === 'error' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
+            'bg-gray-800 border-gray-700 text-gray-400'
+          }`}>
+             {dbStatus === 'connected' && <Wifi className="w-4 h-4" />}
+             {dbStatus === 'local' && <Database className="w-4 h-4" />}
+             {(dbStatus === 'error' || dbStatus === 'checking') && <WifiOff className="w-4 h-4" />}
+             
+             <span className="font-bold">
+               {dbStatus === 'connected' && "Base de Dados: Online"}
+               {dbStatus === 'local' && "Modo Local (Híbrido)"}
+               {dbStatus === 'error' && "Erro de Conexão"}
+               {dbStatus === 'checking' && "Verificando..."}
+             </span>
+          </div>
         </div>
       </div>
 
@@ -89,8 +124,7 @@ export const Admin: React.FC<AdminProps> = ({ events, organizers }) => {
         {/* Table Section */}
         <div className="bg-unikiala-surface p-6 md:p-8 rounded-3xl border border-white/5 shadow-xl">
           <div className="flex justify-between items-center mb-8">
-             <h2 className="text-xl font-bold text-white">Atividades Recentes</h2>
-             <button className="text-xs font-bold text-unikiala-pink hover:text-white transition-colors">VER TODOS</button>
+             <h2 className="text-xl font-bold text-white">Gerenciar Atividades</h2>
           </div>
           
           {/* Scroll Wrapper for Table on Mobile */}
@@ -102,20 +136,33 @@ export const Admin: React.FC<AdminProps> = ({ events, organizers }) => {
                      <th className="py-4 px-6 font-semibold whitespace-nowrap">Evento</th>
                      <th className="py-4 px-6 font-semibold whitespace-nowrap">Data</th>
                      <th className="py-4 px-6 font-semibold text-right whitespace-nowrap">Preço</th>
+                     <th className="py-4 px-6 font-semibold text-center whitespace-nowrap">Ações</th>
                    </tr>
                  </thead>
                  <tbody className="divide-y divide-white/5">
-                   {events.slice(0, 5).map((event) => (
-                     <tr key={event.id} className="hover:bg-white/5 transition-colors">
+                   {events.map((event) => (
+                     <tr key={event.id} className="hover:bg-white/5 transition-colors group">
                        <td className="py-4 px-6 font-medium text-white whitespace-nowrap">{event.title}</td>
-                       <td className="py-4 px-6 whitespace-nowrap">{event.date}</td>
+                       <td className="py-4 px-6 whitespace-nowrap">{new Date(event.date).toLocaleDateString('pt-AO')}</td>
                        <td className="py-4 px-6 text-right font-mono text-unikiala-pink whitespace-nowrap">
                          {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(event.price)}
+                       </td>
+                       <td className="py-4 px-6 text-center whitespace-nowrap">
+                          <button 
+                            onClick={() => onDeleteEvent && onDeleteEvent(event.id)}
+                            className="p-2 hover:bg-red-500/20 rounded-lg text-gray-500 hover:text-red-500 transition-colors"
+                            title="Apagar Evento"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                        </td>
                      </tr>
                    ))}
                  </tbody>
                </table>
+               {events.length === 0 && (
+                 <div className="text-center py-8 text-gray-500">Nenhum evento encontrado.</div>
+               )}
              </div>
           </div>
         </div>

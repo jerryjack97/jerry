@@ -29,3 +29,22 @@ const urlToUse = supabaseUrl || 'https://placeholder.supabase.co';
 const keyToUse = supabaseAnonKey || 'placeholder-key';
 
 export const supabase = createClient(urlToUse, keyToUse);
+
+// Função para verificar conectividade real
+export const checkConnection = async (): Promise<boolean> => {
+  if (!isSupabaseConfigured) return false;
+  try {
+    // Tenta uma query leve que não precisa de autenticação se as políticas permitirem leitura pública
+    // ou falhará graciosamente se a tabela não existir.
+    const { error } = await supabase.from('events').select('id').limit(1);
+    // Se o erro for de conexão (URL errada), retornamos false.
+    // Se o erro for "tabela não existe" ou "permissão", ainda assim conectou.
+    // Para simplificar: se não houver erro ou se o erro não for de rede/fetch.
+    if (error && (error.message.includes('FetchError') || error.message.includes('Failed to fetch'))) {
+      return false;
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
+};

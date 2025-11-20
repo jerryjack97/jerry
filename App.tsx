@@ -29,6 +29,12 @@ const App: React.FC = () => {
 
   const currentRole = history[historyIndex];
 
+  // Load data helper
+  const loadData = async () => {
+    const dbEvents = await eventService.getEvents();
+    setEvents(dbEvents);
+  };
+
   // Check for existing session on mount
   useEffect(() => {
     const initSession = async () => {
@@ -41,10 +47,7 @@ const App: React.FC = () => {
         }
       }
       
-      // Load Events from DB
-      const dbEvents = await eventService.getEvents();
-      setEvents(dbEvents);
-      
+      await loadData();
       setIsLoading(false);
     };
     
@@ -97,8 +100,8 @@ const App: React.FC = () => {
     try {
       const createdEvent = await eventService.createEvent(newEventData);
       if (createdEvent) {
-         // Adiciona o evento à lista local
-         setEvents(prev => [createdEvent, ...prev]);
+         // Recarrega eventos do serviço para garantir sincronia (DB + Local)
+         await loadData();
          
          // Redireciona para a HOME para ver o evento na lista
          setHistory([UserRole.USER]);
@@ -109,8 +112,15 @@ const App: React.FC = () => {
       return false;
     } catch (error) {
       console.error(error);
-      alert("Erro ao criar evento no banco de dados.");
+      alert("Erro ao criar evento.");
       return false;
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    if (window.confirm("Tem certeza que deseja apagar este evento permanentemente?")) {
+      await eventService.deleteEvent(eventId);
+      await loadData(); // Refresh list
     }
   };
 
@@ -127,7 +137,13 @@ const App: React.FC = () => {
           />
         );
       case UserRole.ADMIN:
-        return <Admin events={events} organizers={[organizerProfile]} />;
+        return (
+          <Admin 
+            events={events} 
+            organizers={[organizerProfile]} 
+            onDeleteEvent={handleDeleteEvent} 
+          />
+        );
       case UserRole.ABOUT:
         return <About />;
       case UserRole.CONTACT:
