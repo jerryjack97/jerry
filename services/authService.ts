@@ -72,7 +72,7 @@ export const authService = {
     return { error: 'Erro desconhecido ao logar.' };
   },
 
-  signup: async (name: string, email: string, password: string, role: UserRole): Promise<{ user?: User; code?: string; error?: string }> => {
+  signup: async (name: string, email: string, password: string, role: UserRole): Promise<{ user?: User; error?: string }> => {
     if (!isSupabaseConfigured) {
       return { error: 'Configuração de banco de dados pendente na Vercel.' };
     }
@@ -93,6 +93,7 @@ export const authService = {
     }
 
     if (data.user) {
+      // Cadastro Direto: is_verified = true
       const { error: profileError } = await supabase
         .from('profiles')
         .insert([
@@ -101,7 +102,7 @@ export const authService = {
             email, 
             name, 
             role, 
-            is_verified: false 
+            is_verified: true 
           }
         ]);
 
@@ -113,52 +114,24 @@ export const authService = {
         email,
         password: '',
         role,
-        isVerified: false
+        isVerified: true
       };
       
-      return { user: newUser, code: 'CHECK_EMAIL' };
+      return { user: newUser };
+    }
+
+    // Caso Supabase retorne user null (ex: require email confirmation enabled no dashboard),
+    // tentamos retornar um erro amigável ou forçar o login se a sessão foi criada.
+    if (!data.user && !error) {
+       return { error: "Verifique se a confirmação de email está desativada no Supabase." };
     }
 
     return { error: 'Erro ao criar conta.' };
   },
 
+  // Método mantido apenas para compatibilidade, mas não será usado no fluxo principal
   verifyUser: async (email: string, code: string): Promise<{ success: boolean; user?: User; error?: string }> => {
-    if (!isSupabaseConfigured) {
-      return { success: false, error: 'DB Missing' };
-    }
-    
-    const { data, error } = await supabase.auth.verifyOtp({
-      email,
-      token: code,
-      type: 'signup'
-    });
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    if (data.user) {
-       const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
-
-       await supabase.from('profiles').update({ is_verified: true }).eq('id', data.user.id);
-
-       const user: User = {
-        id: data.user.id,
-        email: data.user.email || '',
-        name: profile?.name || 'Usuário',
-        password: '',
-        role: (profile?.role as UserRole) || UserRole.USER,
-        isVerified: true
-      };
-
-      return { success: true, user };
-    }
-
-    return { success: false, error: 'Falha na verificação.' };
+    return { success: true };
   },
 
   logout: async (): Promise<void> => {
@@ -168,7 +141,6 @@ export const authService = {
   },
 
   getCurrentUser: async (): Promise<User | null> => {
-    // Se não houver DB, não há sessão persistida (exceto se implementarmos mock local, mas vamos manter simples)
     if (!isSupabaseConfigured) return null;
 
     const { data: { session } } = await supabase.auth.getSession();
