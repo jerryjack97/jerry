@@ -44,6 +44,7 @@ const App: React.FC = () => {
         setOrganizerProfile(prev => ({ ...prev, name: user.name, id: user.id }));
         if (user.role === UserRole.ORGANIZER) {
            setHistory([UserRole.ORGANIZER]);
+           setHistoryIndex(0);
         }
       }
       
@@ -53,6 +54,11 @@ const App: React.FC = () => {
     
     initSession();
   }, []);
+
+  // Atualizar eventos sempre que mudar de tela ou usuário (Garante visibilidade imediata)
+  useEffect(() => {
+    loadData();
+  }, [currentRole, currentUser]);
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);

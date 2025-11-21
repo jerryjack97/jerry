@@ -69,7 +69,7 @@ export const Organizer: React.FC<OrganizerProps> = ({ organizer, onSubscribe, on
         </div>
       ) : (
         <div className="animate-in fade-in duration-500">
-          <CreateEventSection onAddEvent={onAddEvent} />
+          <CreateEventSection onAddEvent={onAddEvent} isSubscribed={organizer.isSubscribed} />
         </div>
       )}
     </div>
@@ -154,7 +154,7 @@ const SubscriptionSection: React.FC<{ onSubscribe: (id: string) => void }> = ({ 
   );
 };
 
-const CreateEventSection: React.FC<{ onAddEvent: (event: Omit<Event, 'id'>) => Promise<boolean> }> = ({ onAddEvent }) => {
+const CreateEventSection: React.FC<{ onAddEvent: (event: Omit<Event, 'id'>) => Promise<boolean>, isSubscribed: boolean }> = ({ onAddEvent, isSubscribed }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [details, setDetails] = useState('');
@@ -211,7 +211,7 @@ const CreateEventSection: React.FC<{ onAddEvent: (event: Omit<Event, 'id'>) => P
       imageUrl,
       organizerId: 'current_user',
       organizerWhatsapp: whatsapp.replace(/\D/g, ''), // Remove non-digits
-      highlighted: true 
+      highlighted: isSubscribed // Apenas assinantes têm destaque
     });
 
     setIsSubmitting(false);
