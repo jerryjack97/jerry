@@ -129,6 +129,22 @@ export const authService = {
     return { error: 'Erro ao criar conta.' };
   },
 
+  resetPassword: async (email: string): Promise<{ success?: boolean; error?: string }> => {
+    if (!isSupabaseConfigured) {
+      return { error: 'Banco de dados offline. Não é possível enviar email.' };
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin, // Redireciona de volta para o site após clicar no email
+    });
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    return { success: true };
+  },
+
   // Método mantido apenas para compatibilidade, mas não será usado no fluxo principal
   verifyUser: async (email: string, code: string): Promise<{ success: boolean; user?: User; error?: string }> => {
     return { success: true };

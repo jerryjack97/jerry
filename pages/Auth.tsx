@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { UserRole, User } from '../types';
 import { authService } from '../services/authService';
-import { Mail, Lock, User as UserIcon, ArrowRight, PartyPopper } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ArrowRight, PartyPopper, KeyRound, ArrowLeft } from 'lucide-react';
 
 interface AuthProps {
   onLogin: (user: User) => void;
 }
 
+type AuthMode = 'LOGIN' | 'SIGNUP' | 'RECOVERY';
+
 export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [authMode, setAuthMode] = useState<AuthMode>('LOGIN');
+  
   // Form States
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -16,32 +19,55 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [role, setRole] = useState<UserRole>(UserRole.USER);
   
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
+    setIsLoading(true);
 
-    if (isLogin) {
-      const result = await authService.login(email, password);
-      if (result.user) {
-        onLogin(result.user);
-      } else {
-        setError(result.error || 'Erro ao fazer login.');
+    try {
+      if (authMode === 'LOGIN') {
+        const result = await authService.login(email, password);
+        if (result.user) {
+          onLogin(result.user);
+        } else {
+          setError(result.error || 'Erro ao fazer login.');
+        }
+      } else if (authMode === 'SIGNUP') {
+        if (!name || !email || !password) {
+          setError('Preencha todos os campos.');
+          setIsLoading(false);
+          return;
+        }
+        
+        const result = await authService.signup(name, email, password, role);
+        if (result.error) {
+          setError(result.error);
+        } else if (result.user) {
+          onLogin(result.user);
+        }
+      } else if (authMode === 'RECOVERY') {
+        if (!email) {
+          setError('Insira seu email para recuperar a senha.');
+          setIsLoading(false);
+          return;
+        }
+        const result = await authService.resetPassword(email);
+        if (result.error) {
+          setError(result.error);
+        } else {
+          setSuccessMessage('Link de recuperação enviado! Verifique seu email (e a caixa de spam).');
+          // Opcional: Limpar campo
+          // setEmail('');
+        }
       }
-    } else {
-      // Fluxo de Cadastro Direto
-      if (!name || !email || !password) {
-        setError('Preencha todos os campos.');
-        return;
-      }
-      
-      const result = await authService.signup(name, email, password, role);
-      if (result.error) {
-        setError(result.error);
-      } else if (result.user) {
-        // Login direto após sucesso no cadastro
-        onLogin(result.user);
-      }
+    } catch (err) {
+      setError('Ocorreu um erro inesperado.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -61,25 +87,36 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
                <div className="w-12 h-12 bg-gradient-to-br from-unikiala-pink to-purple-700 rounded-full flex items-center justify-center shadow-neon">
-                 <PartyPopper className="text-white w-6 h-6" />
+                 {authMode === 'RECOVERY' ? (
+                    <KeyRound className="text-white w-6 h-6" />
+                 ) : (
+                    <PartyPopper className="text-white w-6 h-6" />
+                 )}
                </div>
             </div>
             <h1 className="text-3xl font-display font-bold text-white mb-2">UNIKIALA</h1>
             <p className="text-gray-400 text-sm">
-              {isLogin ? 'Bem-vindo de volta ao espetáculo.' : 'Crie sua conta e viva a cultura.'}
+              {authMode === 'LOGIN' && 'Bem-vindo de volta ao espetáculo.'}
+              {authMode === 'SIGNUP' && 'Crie sua conta e viva a cultura.'}
+              {authMode === 'RECOVERY' && 'Recupere o acesso à sua conta.'}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-3 rounded-xl text-center">
+              <div className="bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-3 rounded-xl text-center animate-in slide-in-from-top-2">
                 {error}
               </div>
             )}
+            
+            {successMessage && (
+              <div className="bg-green-500/10 border border-green-500/50 text-green-400 text-sm p-3 rounded-xl text-center animate-in slide-in-from-top-2">
+                {successMessage}
+              </div>
+            )}
 
-            {/* LOGIN / SIGNUP FORM */}
             <div className="space-y-5 animate-in fade-in duration-300">
-              {!isLogin && (
+              {authMode === 'SIGNUP' && (
                 <div className="relative">
                   <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
                   <input
@@ -103,18 +140,33 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 />
               </div>
 
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
-                <input
-                  type="password"
-                  placeholder="Sua Senha"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={inputClass}
-                />
-              </div>
+              {authMode !== 'RECOVERY' && (
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
+                  <input
+                    type="password"
+                    placeholder="Sua Senha"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              )}
 
-              {!isLogin && (
+              {/* Forgot Password Link */}
+              {authMode === 'LOGIN' && (
+                <div className="text-right">
+                  <button 
+                    type="button"
+                    onClick={() => { setAuthMode('RECOVERY'); setError(''); setSuccessMessage(''); }}
+                    className="text-xs text-gray-400 hover:text-unikiala-pink transition-colors"
+                  >
+                    Esqueceu a senha?
+                  </button>
+                </div>
+              )}
+
+              {authMode === 'SIGNUP' && (
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     type="button"
@@ -135,26 +187,44 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
               <button
                 type="submit"
-                className="w-full bg-white text-black hover:bg-unikiala-pink font-bold py-3 rounded-xl transition-all duration-300 flex items-center justify-center group"
+                disabled={isLoading}
+                className="w-full bg-white text-black hover:bg-unikiala-pink font-bold py-3 rounded-xl transition-all duration-300 flex items-center justify-center group disabled:opacity-70"
               >
-                {isLogin ? 'Entrar na Plataforma' : 'Criar Conta'}
-                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                {isLoading ? 'Processando...' : (
+                  <>
+                    {authMode === 'LOGIN' && 'Entrar na Plataforma'}
+                    {authMode === 'SIGNUP' && 'Criar Conta'}
+                    {authMode === 'RECOVERY' && 'Enviar Link de Recuperação'}
+                    {authMode !== 'RECOVERY' && <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />}
+                  </>
+                )}
               </button>
 
               <div className="mt-8 text-center">
-                <p className="text-gray-400 text-sm">
-                  {isLogin ? 'Não tem uma conta?' : 'Já tem uma conta?'}
+                {authMode === 'RECOVERY' ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsLogin(!isLogin);
-                      setError('');
-                    }}
-                    className="ml-2 text-unikiala-pink font-bold hover:underline"
+                    onClick={() => { setAuthMode('LOGIN'); setError(''); setSuccessMessage(''); }}
+                    className="text-gray-400 text-sm hover:text-white flex items-center justify-center mx-auto"
                   >
-                    {isLogin ? 'Cadastre-se' : 'Fazer Login'}
+                    <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para Login
                   </button>
-                </p>
+                ) : (
+                  <p className="text-gray-400 text-sm">
+                    {authMode === 'LOGIN' ? 'Não tem uma conta?' : 'Já tem uma conta?'}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode(authMode === 'LOGIN' ? 'SIGNUP' : 'LOGIN');
+                        setError('');
+                        setSuccessMessage('');
+                      }}
+                      className="ml-2 text-unikiala-pink font-bold hover:underline"
+                    >
+                      {authMode === 'LOGIN' ? 'Cadastre-se' : 'Fazer Login'}
+                    </button>
+                  </p>
+                )}
               </div>
             </div>
           </form>
