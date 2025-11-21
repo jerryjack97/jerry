@@ -1,3 +1,4 @@
+
 import { User, UserRole } from '../types';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 
@@ -48,7 +49,19 @@ export const authService = {
     });
 
     if (error) {
-      return { error: 'Email ou senha incorretos.' };
+      console.error("Erro Supabase Login:", error);
+      
+      // Tratamento para Email Não Confirmado (Erro 400 ou específico)
+      if (error.message.includes("Email not confirmed") || error.message.includes("confirm")) {
+        return { error: "Sua conta existe, mas o email não foi confirmado pelo Supabase. Vá no painel > Authentication > Providers > Email e desligue 'Confirm email' para corrigir." };
+      }
+      
+      // Tratamento para Credenciais Inválidas
+      if (error.message.includes("Invalid login credentials")) {
+        return { error: "Email ou senha incorretos." };
+      }
+      
+      return { error: `Erro ao entrar: ${error.message}` };
     }
 
     if (data.user) {
@@ -77,6 +90,7 @@ export const authService = {
       return { error: 'Configuração de banco de dados pendente na Vercel.' };
     }
 
+    // Tentativa de cadastro
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -89,19 +103,16 @@ export const authService = {
     });
 
     // LÓGICA CORRIGIDA:
-    // O Supabase pode retornar um erro de SMTP (fake email limit) MESMO criando o usuário com sucesso.
-    // Se data.user existe, ignoramos o erro de email e procedemos.
-    // Se data.user for nulo E houver erro, então é uma falha real (ex: usuário já existe).
+    // Se houver erro de SMTP (comum no plano free), mas o usuário foi criado (data.user existe), ignoramos o erro.
     if (error && !data.user) {
-      // Tratamento específico para erro comum de SMTP no Supabase Free
       if (error.message.includes("sending confirmation email") || error.message.includes("confirmation")) {
-         return { error: "Erro técnico no envio de email. Vá no painel do Supabase > Authentication > Email e desmarque 'Confirm email' para permitir cadastro direto." };
+         return { error: "Erro técnico no envio de email. Desative a confirmação de email no painel do Supabase para evitar isso." };
       }
       return { error: error.message };
     }
 
     if (data.user) {
-      // Cadastro Direto: is_verified = true
+      // Criação do perfil na tabela 'profiles'
       const { error: profileError } = await supabase
         .from('profiles')
         .insert([
@@ -116,7 +127,13 @@ export const authService = {
 
       if (profileError) {
         console.error("Erro ao criar perfil:", profileError);
-        // Se falhar ao criar perfil (ex: duplicado), mas criou user, seguimos.
+      }
+
+      // Tentativa de Autenticação Automática Pós-Cadastro
+      // Se o signUp não retornou sessão (data.session null), tentamos fazer login manual agora.
+      // Isso ajuda a persistir a sessão se o 'Confirm Email' estiver desligado mas o signUp não logou auto.
+      if (!data.session) {
+        await supabase.auth.signInWithPassword({ email, password });
       }
 
       const newUser: User = {
@@ -131,9 +148,9 @@ export const authService = {
       return { user: newUser };
     }
 
-    // Caso Supabase retorne user null (ex: require email confirmation enabled no dashboard e falha silenciosa),
+    // Caso raro onde user é null mas não deu erro explícito
     if (!data.user && !error) {
-       return { error: "Conta criada, mas requer confirmação. Tente fazer login." };
+       return { error: "Conta criada, mas aguardando confirmação do Supabase. Tente fazer login." };
     }
 
     return { error: 'Erro ao criar conta.' };
@@ -150,13 +167,12 @@ export const authService = {
     }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin, // Redireciona de volta para o site após clicar no email
+      redirectTo: window.location.origin,
     });
 
     if (error) {
-      // Tratamento de erro de limite ou SMTP
       if (error.message.includes("SMTP") || error.message.includes("sending") || error.status === 429) {
-          return { error: "Não foi possível enviar o email (Limite de envio ou Erro SMTP). Verifique configurações no Supabase." };
+          return { error: "Não foi possível enviar o email (Limite do Supabase ou Erro SMTP). Tente novamente mais tarde." };
       }
       return { error: error.message };
     }
@@ -164,7 +180,6 @@ export const authService = {
     return { success: true };
   },
 
-  // Método mantido apenas para compatibilidade
   verifyUser: async (email: string, code: string): Promise<{ success: boolean; user?: User; error?: string }> => {
     return { success: true };
   },
@@ -182,7 +197,6 @@ export const authService = {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return null;
 
-      // Se for o admin hardcoded (caso tenha entrado via backdoor, mas sessão supabase existe por coincidência)
       if (session.user.email === ADMIN_EMAIL) return MOCK_ADMIN;
 
       const { data: profile } = await supabase
