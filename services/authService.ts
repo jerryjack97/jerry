@@ -88,7 +88,11 @@ export const authService = {
       }
     });
 
-    if (error) {
+    // LÓGICA CORRIGIDA:
+    // O Supabase pode retornar um erro de SMTP (fake email limit) MESMO criando o usuário com sucesso.
+    // Se data.user existe, ignoramos o erro de email e procedemos.
+    // Se data.user for nulo E houver erro, então é uma falha real (ex: usuário já existe).
+    if (error && !data.user) {
       // Tratamento específico para erro comum de SMTP no Supabase Free
       if (error.message.includes("sending confirmation email") || error.message.includes("confirmation")) {
          return { error: "Erro técnico no envio de email. Vá no painel do Supabase > Authentication > Email e desmarque 'Confirm email' para permitir cadastro direto." };
@@ -112,7 +116,7 @@ export const authService = {
 
       if (profileError) {
         console.error("Erro ao criar perfil:", profileError);
-        // Se falhar ao criar perfil, mas criou user, tentamos seguir
+        // Se falhar ao criar perfil (ex: duplicado), mas criou user, seguimos.
       }
 
       const newUser: User = {
@@ -129,7 +133,7 @@ export const authService = {
 
     // Caso Supabase retorne user null (ex: require email confirmation enabled no dashboard e falha silenciosa),
     if (!data.user && !error) {
-       return { error: "Conta criada, mas requer confirmação de email. Verifique se a opção 'Confirm email' está desativada no Supabase para acesso imediato." };
+       return { error: "Conta criada, mas requer confirmação. Tente fazer login." };
     }
 
     return { error: 'Erro ao criar conta.' };
