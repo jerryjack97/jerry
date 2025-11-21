@@ -27,6 +27,15 @@ export const Navbar: React.FC<NavbarProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Determinar permissões de visualização
+  const isAdmin = currentUser?.role === UserRole.ADMIN;
+  const isOrganizer = currentUser?.role === UserRole.ORGANIZER;
+  
+  // Organizadores e Admins podem ver a aba Organizador
+  const canAccessOrganizer = isAdmin || isOrganizer;
+  // Apenas Admins podem ver a aba Admin
+  const canAccessAdmin = isAdmin;
+
   // --- Lógica de Som (Web Audio API) ---
   const playFireworkSound = () => {
     try {
@@ -216,18 +225,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                 icon={<Ticket className="w-4 h-4" />}
                 label="Eventos"
               />
-              <NavButton 
-                active={currentRole === UserRole.ORGANIZER} 
-                onClick={() => handleNavClick(UserRole.ORGANIZER)} 
-                icon={<Users className="w-4 h-4" />}
-                label="Organizador"
-              />
-              <NavButton 
-                active={currentRole === UserRole.ADMIN} 
-                onClick={() => handleNavClick(UserRole.ADMIN)} 
-                icon={<LayoutDashboard className="w-4 h-4" />}
-                label="Admin"
-              />
+              
+              {canAccessOrganizer && (
+                <NavButton 
+                  active={currentRole === UserRole.ORGANIZER} 
+                  onClick={() => handleNavClick(UserRole.ORGANIZER)} 
+                  icon={<Users className="w-4 h-4" />}
+                  label="Organizador"
+                />
+              )}
+              
+              {canAccessAdmin && (
+                <NavButton 
+                  active={currentRole === UserRole.ADMIN} 
+                  onClick={() => handleNavClick(UserRole.ADMIN)} 
+                  icon={<LayoutDashboard className="w-4 h-4" />}
+                  label="Admin"
+                />
+              )}
             </div>
 
             {/* User Profile & Logout - Desktop */}
@@ -293,18 +308,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                 icon={<Ticket className="w-5 h-5" />}
                 label="Eventos & Ingressos"
               />
-              <MobileNavButton 
-                active={currentRole === UserRole.ORGANIZER} 
-                onClick={() => handleNavClick(UserRole.ORGANIZER)} 
-                icon={<Users className="w-5 h-5" />}
-                label="Área do Organizador"
-              />
-              <MobileNavButton 
-                active={currentRole === UserRole.ADMIN} 
-                onClick={() => handleNavClick(UserRole.ADMIN)} 
-                icon={<LayoutDashboard className="w-5 h-5" />}
-                label="Administração"
-              />
+
+              {canAccessOrganizer && (
+                <MobileNavButton 
+                  active={currentRole === UserRole.ORGANIZER} 
+                  onClick={() => handleNavClick(UserRole.ORGANIZER)} 
+                  icon={<Users className="w-5 h-5" />}
+                  label="Área do Organizador"
+                />
+              )}
+
+              {canAccessAdmin && (
+                <MobileNavButton 
+                  active={currentRole === UserRole.ADMIN} 
+                  onClick={() => handleNavClick(UserRole.ADMIN)} 
+                  icon={<LayoutDashboard className="w-5 h-5" />}
+                  label="Administração"
+                />
+              )}
 
               <div className="pt-4 border-t border-white/10">
                 <button 
