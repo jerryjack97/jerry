@@ -89,6 +89,10 @@ export const authService = {
     });
 
     if (error) {
+      // Tratamento específico para erro comum de SMTP no Supabase Free
+      if (error.message.includes("sending confirmation email") || error.message.includes("confirmation")) {
+         return { error: "Erro técnico no envio de email. Vá no painel do Supabase > Authentication > Email e desmarque 'Confirm email' para permitir cadastro direto." };
+      }
       return { error: error.message };
     }
 
@@ -106,7 +110,10 @@ export const authService = {
           }
         ]);
 
-      if (profileError) console.error("Erro ao criar perfil:", profileError);
+      if (profileError) {
+        console.error("Erro ao criar perfil:", profileError);
+        // Se falhar ao criar perfil, mas criou user, tentamos seguir
+      }
 
       const newUser: User = {
         id: data.user.id,
@@ -120,16 +127,20 @@ export const authService = {
       return { user: newUser };
     }
 
-    // Caso Supabase retorne user null (ex: require email confirmation enabled no dashboard),
-    // tentamos retornar um erro amigável ou forçar o login se a sessão foi criada.
+    // Caso Supabase retorne user null (ex: require email confirmation enabled no dashboard e falha silenciosa),
     if (!data.user && !error) {
-       return { error: "Verifique se a confirmação de email está desativada no Supabase." };
+       return { error: "Conta criada, mas requer confirmação de email. Verifique se a opção 'Confirm email' está desativada no Supabase para acesso imediato." };
     }
 
     return { error: 'Erro ao criar conta.' };
   },
 
   resetPassword: async (email: string): Promise<{ success?: boolean; error?: string }> => {
+    // Simulação para Admin (Bypass)
+    if (email === ADMIN_EMAIL) {
+      return { success: true };
+    }
+
     if (!isSupabaseConfigured) {
       return { error: 'Banco de dados offline. Não é possível enviar email.' };
     }
@@ -139,13 +150,17 @@ export const authService = {
     });
 
     if (error) {
+      // Tratamento de erro de limite ou SMTP
+      if (error.message.includes("SMTP") || error.message.includes("sending") || error.status === 429) {
+          return { error: "Não foi possível enviar o email (Limite de envio ou Erro SMTP). Verifique configurações no Supabase." };
+      }
       return { error: error.message };
     }
 
     return { success: true };
   },
 
-  // Método mantido apenas para compatibilidade, mas não será usado no fluxo principal
+  // Método mantido apenas para compatibilidade
   verifyUser: async (email: string, code: string): Promise<{ success: boolean; user?: User; error?: string }> => {
     return { success: true };
   },
@@ -159,22 +174,29 @@ export const authService = {
   getCurrentUser: async (): Promise<User | null> => {
     if (!isSupabaseConfigured) return null;
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return null;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return null;
 
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+      // Se for o admin hardcoded (caso tenha entrado via backdoor, mas sessão supabase existe por coincidência)
+      if (session.user.email === ADMIN_EMAIL) return MOCK_ADMIN;
 
-    return {
-        id: session.user.id,
-        email: session.user.email || '',
-        name: profile?.name || session.user.user_metadata.name || 'Usuário',
-        password: '',
-        role: (profile?.role as UserRole) || UserRole.USER,
-        isVerified: true
-    };
+      const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+      return {
+          id: session.user.id,
+          email: session.user.email || '',
+          name: profile?.name || session.user.user_metadata.name || 'Usuário',
+          password: '',
+          role: (profile?.role as UserRole) || UserRole.USER,
+          isVerified: true
+      };
+    } catch (e) {
+      return null;
+    }
   }
 };
