@@ -109,10 +109,8 @@ const App: React.FC = () => {
          // Recarrega eventos do serviço para garantir sincronia (DB + Local)
          await loadData();
          
-         // Redireciona para a HOME para ver o evento na lista
-         setHistory([UserRole.USER]);
-         setHistoryIndex(0);
-         window.scrollTo(0, 0);
+         // REMOVIDO: Redirecionamento automático. 
+         // Agora a página Organizer exibe um modal de sucesso e o usuário escolhe sair.
          return true;
       }
       return false;
@@ -140,6 +138,7 @@ const App: React.FC = () => {
             organizer={organizerProfile} 
             onSubscribe={handleSubscribe} 
             onAddEvent={handleAddEvent}
+            onGoHome={() => navigateTo(UserRole.USER)}
           />
         );
       case UserRole.ADMIN:

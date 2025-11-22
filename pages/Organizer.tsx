@@ -8,9 +8,10 @@ interface OrganizerProps {
   organizer: OrganizerProfile;
   onSubscribe: (planId: string) => void;
   onAddEvent: (event: Omit<Event, 'id'>) => Promise<boolean>;
+  onGoHome: () => void;
 }
 
-export const Organizer: React.FC<OrganizerProps> = ({ organizer, onSubscribe, onAddEvent }) => {
+export const Organizer: React.FC<OrganizerProps> = ({ organizer, onSubscribe, onAddEvent, onGoHome }) => {
   const [showPlans, setShowPlans] = useState(false);
 
   // Determina se mostra os planos:
@@ -19,7 +20,7 @@ export const Organizer: React.FC<OrganizerProps> = ({ organizer, onSubscribe, on
   const shouldShowPlans = !organizer.isSubscribed || showPlans;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
+    <div className="max-w-7xl mx-auto px-4 py-8 md:py-12 relative">
       <div className="mb-8 pb-6 border-b border-white/10 flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div>
           <h1 className="text-3xl md:text-5xl font-display font-bold text-white mb-2">Área do Produtor</h1>
@@ -69,7 +70,7 @@ export const Organizer: React.FC<OrganizerProps> = ({ organizer, onSubscribe, on
         </div>
       ) : (
         <div className="animate-in fade-in duration-500">
-          <CreateEventSection onAddEvent={onAddEvent} isSubscribed={organizer.isSubscribed} />
+          <CreateEventSection onAddEvent={onAddEvent} isSubscribed={organizer.isSubscribed} onGoHome={onGoHome} />
         </div>
       )}
     </div>
@@ -154,7 +155,7 @@ const SubscriptionSection: React.FC<{ onSubscribe: (id: string) => void }> = ({ 
   );
 };
 
-const CreateEventSection: React.FC<{ onAddEvent: (event: Omit<Event, 'id'>) => Promise<boolean>, isSubscribed: boolean }> = ({ onAddEvent, isSubscribed }) => {
+const CreateEventSection: React.FC<{ onAddEvent: (event: Omit<Event, 'id'>) => Promise<boolean>, isSubscribed: boolean, onGoHome: () => void }> = ({ onAddEvent, isSubscribed, onGoHome }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [details, setDetails] = useState('');
@@ -165,6 +166,7 @@ const CreateEventSection: React.FC<{ onAddEvent: (event: Omit<Event, 'id'>) => P
   const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -217,7 +219,18 @@ const CreateEventSection: React.FC<{ onAddEvent: (event: Omit<Event, 'id'>) => P
     setIsSubmitting(false);
 
     if (success) {
-      alert('Evento publicado com sucesso!');
+      // Limpar formulário
+      setTitle('');
+      setDescription('');
+      setDetails('');
+      setDate('');
+      setLocation('');
+      setPrice('');
+      setWhatsapp('');
+      setImageUrl('https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80');
+      
+      // Mostrar Modal
+      setShowSuccess(true);
     } else {
       alert('Erro ao criar evento. Tente novamente.');
     }
@@ -228,192 +241,232 @@ const CreateEventSection: React.FC<{ onAddEvent: (event: Omit<Event, 'id'>) => P
   const requiredMark = <span className="text-red-500 ml-1" title="Obrigatório">*</span>;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
-      <div className="lg:col-span-1 space-y-6">
-        <div className="bg-gradient-to-br from-pink-900/20 to-purple-900/20 border border-unikiala-pink/20 p-6 rounded-3xl">
-          <h3 className="text-xl font-bold text-white mb-4 flex items-center">
-            <Zap className="text-unikiala-pink mr-2" /> Dica Pro
-          </h3>
-          <p className="text-gray-400 text-sm leading-relaxed mb-4">
-            Imagens de alta qualidade e descrições criativas aumentam em até 60% a venda de ingressos. 
-            Use nossa ferramenta de IA para criar textos envolventes.
-          </p>
-          <p className="text-gray-400 text-sm leading-relaxed">
-            <strong className="text-white">Importante:</strong> Adicione um número de WhatsApp válido. As vendas serão finalizadas diretamente por lá.
-          </p>
-        </div>
-
-        {/* Preview Box in Sidebar (Optional, but keeps context) */}
-        <div className="bg-unikiala-surface border border-white/10 p-4 rounded-3xl">
-             <label className={labelClass}>Pré-visualização</label>
-             <div className="rounded-2xl overflow-hidden aspect-video relative group">
-                <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                   <span className="text-white text-xs font-bold">Capa do Evento</span>
-                </div>
-             </div>
-        </div>
-      </div>
-
-      <div className="lg:col-span-2 bg-unikiala-surface p-6 md:p-10 rounded-3xl border border-white/5 shadow-2xl">
-        <h2 className="text-2xl md:text-3xl font-display font-bold text-white mb-8 flex items-center">
-          Nova Atividade
-        </h2>
-        
-        <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
-          {/* Image Upload Section */}
-          <div>
-            <label className={labelClass}>Imagem de Capa {requiredMark}</label>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleImageUpload} 
-              accept="image/*" 
-              className="hidden" 
-            />
-            <div 
-              onClick={triggerFileInput}
-              className="w-full h-64 border-2 border-dashed border-gray-700 hover:border-unikiala-pink hover:bg-white/5 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all group relative overflow-hidden"
+    <>
+      {/* Success Modal */}
+      {showSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-unikiala-surface border border-unikiala-pink/50 p-8 rounded-3xl max-w-md w-full text-center shadow-neon animate-in zoom-in duration-300 relative">
+            <button 
+              onClick={() => setShowSuccess(false)} 
+              className="absolute top-4 right-4 text-gray-500 hover:text-white"
             >
-              {imageUrl && !imageUrl.includes('unsplash') ? (
-                <>
-                  <img src={imageUrl} alt="Uploaded" className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-30 transition-opacity" />
-                  <div className="relative z-10 flex flex-col items-center">
-                     <div className="p-4 bg-black/50 rounded-full backdrop-blur-sm mb-2 group-hover:scale-110 transition-transform">
-                        <ImageIcon className="w-8 h-8 text-unikiala-pink" />
-                     </div>
-                     <span className="text-white font-bold text-sm shadow-black drop-shadow-md">Clique para alterar imagem</span>
+              <X className="w-6 h-6" />
+            </button>
+            
+            <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-500/30 shadow-lg shadow-green-900/50">
+              <Check className="w-10 h-10 text-green-500" />
+            </div>
+            
+            <h2 className="text-2xl font-bold text-white mb-2 font-display">Sucesso!</h2>
+            <p className="text-gray-300 mb-8">
+              Sua atividade foi publicada e já está disponível para todos os usuários do UNIKIALA.
+            </p>
+            
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={onGoHome}
+                className="w-full bg-unikiala-pink text-black font-bold py-3 rounded-xl hover:bg-white transition-colors shadow-neon"
+              >
+                Ver Atividade na Home
+              </button>
+              <button 
+                onClick={() => setShowSuccess(false)}
+                className="w-full bg-white/5 text-white font-bold py-3 rounded-xl hover:bg-white/10 border border-white/10 transition-colors"
+              >
+                Publicar Nova Atividade
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-gradient-to-br from-pink-900/20 to-purple-900/20 border border-unikiala-pink/20 p-6 rounded-3xl">
+            <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+              <Zap className="text-unikiala-pink mr-2" /> Dica Pro
+            </h3>
+            <p className="text-gray-400 text-sm leading-relaxed mb-4">
+              Imagens de alta qualidade e descrições criativas aumentam em até 60% a venda de ingressos. 
+              Use nossa ferramenta de IA para criar textos envolventes.
+            </p>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              <strong className="text-white">Importante:</strong> Adicione um número de WhatsApp válido. As vendas serão finalizadas diretamente por lá.
+            </p>
+          </div>
+
+          {/* Preview Box in Sidebar (Optional, but keeps context) */}
+          <div className="bg-unikiala-surface border border-white/10 p-4 rounded-3xl">
+               <label className={labelClass}>Pré-visualização</label>
+               <div className="rounded-2xl overflow-hidden aspect-video relative group">
+                  <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                     <span className="text-white text-xs font-bold">Capa do Evento</span>
                   </div>
-                </>
-              ) : (
-                <>
-                   <div className="p-4 bg-white/5 rounded-full mb-3 group-hover:scale-110 transition-transform">
-                      <Upload className="w-8 h-8 text-gray-400 group-hover:text-unikiala-pink" />
-                   </div>
-                   <p className="text-gray-400 font-medium group-hover:text-white">Clique para fazer upload da capa</p>
-                   <p className="text-gray-600 text-xs mt-1">PNG, JPG ou WEBP (Max 5MB)</p>
-                </>
-              )}
-            </div>
+               </div>
           </div>
+        </div>
 
-          <div>
-            <label className={labelClass}>Título do Evento {requiredMark}</label>
-            <input
-              required
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className={inputClass}
-              placeholder="Ex: Show de Kizomba ao Luar"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="lg:col-span-2 bg-unikiala-surface p-6 md:p-10 rounded-3xl border border-white/5 shadow-2xl">
+          <h2 className="text-2xl md:text-3xl font-display font-bold text-white mb-8 flex items-center">
+            Nova Atividade
+          </h2>
+          
+          <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
+            {/* Image Upload Section */}
             <div>
-              <label className={labelClass}>Data {requiredMark}</label>
-              <input
-                required
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className={inputClass}
+              <label className={labelClass}>Imagem de Capa {requiredMark}</label>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageUpload} 
+                accept="image/*" 
+                className="hidden" 
               />
+              <div 
+                onClick={triggerFileInput}
+                className="w-full h-64 border-2 border-dashed border-gray-700 hover:border-unikiala-pink hover:bg-white/5 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all group relative overflow-hidden"
+              >
+                {imageUrl && !imageUrl.includes('unsplash') ? (
+                  <>
+                    <img src={imageUrl} alt="Uploaded" className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-30 transition-opacity" />
+                    <div className="relative z-10 flex flex-col items-center">
+                       <div className="p-4 bg-black/50 rounded-full backdrop-blur-sm mb-2 group-hover:scale-110 transition-transform">
+                          <ImageIcon className="w-8 h-8 text-unikiala-pink" />
+                       </div>
+                       <span className="text-white font-bold text-sm shadow-black drop-shadow-md">Clique para alterar imagem</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                     <div className="p-4 bg-white/5 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                        <Upload className="w-8 h-8 text-gray-400 group-hover:text-unikiala-pink" />
+                     </div>
+                     <p className="text-gray-400 font-medium group-hover:text-white">Clique para fazer upload da capa</p>
+                     <p className="text-gray-600 text-xs mt-1">PNG, JPG ou WEBP (Max 5MB)</p>
+                  </>
+                )}
+              </div>
             </div>
-            <div>
-               <label className={labelClass}>Preço (AOA) {requiredMark}</label>
-              <input
-                required
-                type="number"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className={inputClass}
-                placeholder="0"
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             <div>
-              <label className={labelClass}>Localização {requiredMark}</label>
+            <div>
+              <label className={labelClass}>Título do Evento {requiredMark}</label>
               <input
                 required
                 type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 className={inputClass}
-                placeholder="Ex: Cine Atlântico"
+                placeholder="Ex: Show de Kizomba ao Luar"
               />
             </div>
-            <div>
-              <label className={labelClass}>WhatsApp para Vendas {requiredMark}</label>
-              <div className="relative">
-                <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className={labelClass}>Data {requiredMark}</label>
                 <input
                   required
-                  type="text"
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  className={`${inputClass} pl-10`}
-                  placeholder="Ex: 244923456789"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                 <label className={labelClass}>Preço (AOA) {requiredMark}</label>
+                <input
+                  required
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  className={inputClass}
+                  placeholder="0"
                 />
               </div>
             </div>
-          </div>
 
-          <div className="border border-unikiala-pink/30 p-6 rounded-2xl bg-unikiala-pink/5 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-              <Sparkles className="w-24 h-24 text-unikiala-pink" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div>
+                <label className={labelClass}>Localização {requiredMark}</label>
+                <input
+                  required
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className={inputClass}
+                  placeholder="Ex: Cine Atlântico"
+                />
+              </div>
+              <div>
+                <label className={labelClass}>WhatsApp para Vendas {requiredMark}</label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+                  <input
+                    required
+                    type="text"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    className={`${inputClass} pl-10`}
+                    placeholder="Ex: 244923456789"
+                  />
+                </div>
+              </div>
             </div>
-            <label className="block text-unikiala-pink font-bold mb-2 flex items-center">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Assistente de IA (Gemini)
-            </label>
-            <textarea
-              value={details}
-              onChange={(e) => setDetails(e.target.value)}
-              className="w-full bg-black/60 border border-unikiala-pink/20 rounded-xl p-4 text-white text-sm mb-4 focus:border-unikiala-pink outline-none"
-              placeholder="Digite palavras-chave: Jazz, Vinho, Pôr do sol, Romântico..."
-              rows={2}
-            />
+
+            <div className="border border-unikiala-pink/30 p-6 rounded-2xl bg-unikiala-pink/5 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Sparkles className="w-24 h-24 text-unikiala-pink" />
+              </div>
+              <label className="block text-unikiala-pink font-bold mb-2 flex items-center">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Assistente de IA (Gemini)
+              </label>
+              <textarea
+                value={details}
+                onChange={(e) => setDetails(e.target.value)}
+                className="w-full bg-black/60 border border-unikiala-pink/20 rounded-xl p-4 text-white text-sm mb-4 focus:border-unikiala-pink outline-none"
+                placeholder="Digite palavras-chave: Jazz, Vinho, Pôr do sol, Romântico..."
+                rows={2}
+              />
+              <button
+                type="button"
+                onClick={handleGenerateDescription}
+                disabled={!title || isGenerating}
+                className="w-full md:w-auto text-sm bg-black hover:bg-gray-900 text-white border border-gray-700 px-5 py-2.5 rounded-lg flex items-center justify-center transition-all disabled:opacity-50"
+              >
+                {isGenerating ? <Loader2 className="animate-spin mr-2 w-4 h-4" /> : <Sparkles className="mr-2 w-4 h-4 text-unikiala-pink" />}
+                Gerar Descrição Automática
+              </button>
+            </div>
+
+            <div>
+              <label className={labelClass}>Descrição Final</label>
+              <textarea
+                required
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className={`${inputClass} h-40`}
+                placeholder="A descrição do evento aparecerá aqui..."
+              />
+            </div>
+
             <button
-              type="button"
-              onClick={handleGenerateDescription}
-              disabled={!title || isGenerating}
-              className="w-full md:w-auto text-sm bg-black hover:bg-gray-900 text-white border border-gray-700 px-5 py-2.5 rounded-lg flex items-center justify-center transition-all disabled:opacity-50"
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-unikiala-pink text-black font-bold text-lg py-4 rounded-xl hover:bg-white hover:shadow-neon transition-all duration-300 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {isGenerating ? <Loader2 className="animate-spin mr-2 w-4 h-4" /> : <Sparkles className="mr-2 w-4 h-4 text-unikiala-pink" />}
-              Gerar Descrição Automática
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="animate-spin mr-2 w-6 h-6" />
+                  Publicando Atividade...
+                </>
+              ) : (
+                'Publicar Atividade'
+              )}
             </button>
-          </div>
-
-          <div>
-            <label className={labelClass}>Descrição Final</label>
-            <textarea
-              required
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className={`${inputClass} h-40`}
-              placeholder="A descrição do evento aparecerá aqui..."
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-unikiala-pink text-black font-bold text-lg py-4 rounded-xl hover:bg-white hover:shadow-neon transition-all duration-300 flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="animate-spin mr-2 w-6 h-6" />
-                Publicando Atividade...
-              </>
-            ) : (
-              'Publicar Atividade'
-            )}
-          </button>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
