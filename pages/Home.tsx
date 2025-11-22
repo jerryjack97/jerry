@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Event } from '../types';
-import { Calendar, MapPin, Search, ArrowRight, X, Truck, Store, MessageCircle, DollarSign, Map as MapIcon } from 'lucide-react';
+import { Calendar, MapPin, Search, ArrowRight, X, Truck, Store, MessageCircle, DollarSign, Map as MapIcon, Filter } from 'lucide-react';
 
 // Declare Leaflet global to avoid TS errors since we import it via CDN
 declare const L: any;
@@ -39,13 +39,19 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
     setSearchTerm('');
   };
 
-  // Filter events based on search term
+  // Lógica de Filtro de Busca Robusta
   const filteredEvents = events.filter(event => {
-    const term = searchTerm.toLowerCase();
+    if (!searchTerm) return true;
+    
+    const term = searchTerm.toLowerCase().trim();
+    const title = (event.title || '').toLowerCase();
+    const location = (event.location || '').toLowerCase();
+    const description = (event.description || '').toLowerCase();
+
     return (
-      event.title.toLowerCase().includes(term) ||
-      event.location.toLowerCase().includes(term) ||
-      event.description.toLowerCase().includes(term)
+      title.includes(term) ||
+      location.includes(term) ||
+      description.includes(term)
     );
   });
 
@@ -63,7 +69,7 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
         />
       )}
 
-      {/* Hero Section - Responsive Adjustments */}
+      {/* Hero Section */}
       <div className="relative min-h-[80vh] md:h-[600px] w-full overflow-hidden flex items-center justify-center mb-12 md:mb-16">
         {/* Background Image with Gradient Overlay */}
         <div 
@@ -85,7 +91,7 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
             Garanta seu lugar nos melhores concertos, teatros e exposições. Viva experiências inesquecíveis.
           </p>
           
-          {/* Search Bar Mockup - Responsive Stack */}
+          {/* Search Bar */}
           <div className="w-full max-w-2xl mx-auto bg-black/40 md:bg-white/10 backdrop-blur-lg border border-white/20 p-3 rounded-3xl md:rounded-full flex flex-col md:flex-row items-center shadow-2xl gap-3 md:gap-0 transition-all focus-within:border-unikiala-pink/50 focus-within:bg-black/60">
             <div className="flex items-center w-full md:w-auto flex-grow relative">
               <Search className="text-gray-400 w-5 h-5 ml-2 md:ml-4 shrink-0" />
@@ -95,6 +101,7 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Busque por evento, artista ou local..." 
                 className="flex-grow bg-transparent border-none focus:ring-0 text-white placeholder-gray-400 px-4 h-10 outline-none w-full text-sm md:text-base"
+                autoComplete="off"
               />
               {searchTerm && (
                 <button 
@@ -117,6 +124,17 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
 
       <div ref={eventsSectionRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
         
+        {/* Resultados da Busca (Contador) */}
+        {searchTerm && (
+          <div className="mb-8 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+             <Filter className="w-4 h-4 text-unikiala-pink" />
+             <span className="text-gray-400 text-sm">
+               Encontrados <strong className="text-white">{filteredEvents.length}</strong> resultados para "{searchTerm}"
+             </span>
+             <button onClick={clearSearch} className="ml-auto text-xs text-unikiala-pink hover:underline">Limpar filtro</button>
+          </div>
+        )}
+
         {/* MAP SECTION */}
         <section className="mb-12 md:mb-20 animate-in fade-in slide-in-from-bottom-8 duration-700">
           <div className="flex items-center mb-6 md:mb-8">
@@ -133,7 +151,7 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
           </div>
         </section>
 
-        {/* Search Results Feedback */}
+        {/* Search No Results Feedback */}
         {searchTerm && filteredEvents.length === 0 && (
           <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/10 mb-12">
             <Search className="w-12 h-12 text-gray-600 mx-auto mb-4" />
@@ -151,9 +169,6 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
                 <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-2">Em Destaque</h2>
                 <div className="h-1 w-20 bg-unikiala-pink rounded-full"></div>
               </div>
-              {/* <button className="hidden md:flex items-center text-unikiala-pink hover:text-white transition-colors font-bold text-sm">
-                Ver todos <ArrowRight className="w-4 h-4 ml-2" />
-              </button> */}
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
