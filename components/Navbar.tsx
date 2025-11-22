@@ -226,6 +226,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 label="Eventos"
               />
               
+              {/* Botão explícito de Perfil no menu central */}
+              {currentUser && (
+                <NavButton 
+                  active={currentRole === UserRole.PROFILE} 
+                  onClick={() => handleNavClick(UserRole.PROFILE)} 
+                  icon={<UserIcon className="w-4 h-4" />}
+                  label="Meu Perfil"
+                />
+              )}
+              
               {canAccessOrganizer && (
                 <NavButton 
                   active={currentRole === UserRole.ORGANIZER} 
@@ -257,8 +267,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <p className="text-sm font-bold text-white leading-none group-hover:text-unikiala-pink transition-colors">{currentUser.name}</p>
                     <p className="text-xs text-gray-400 leading-none mt-1">{currentUser.role}</p>
                   </div>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border border-white/10 group-hover:border-unikiala-pink transition-all ${currentRole === UserRole.PROFILE ? 'bg-unikiala-pink/20' : 'bg-white/10'}`}>
-                    <UserIcon className={`w-4 h-4 ${currentRole === UserRole.PROFILE ? 'text-unikiala-pink' : 'text-gray-300'}`} />
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all shadow-neon ${currentRole === UserRole.PROFILE ? 'border-unikiala-pink bg-unikiala-pink/20' : 'border-white/20 bg-white/5 group-hover:border-unikiala-pink'}`}>
+                    {/* Avatar Placeholder com iniciais */}
+                    <span className="font-display font-bold text-white">
+                      {currentUser.name.charAt(0).toUpperCase()}
+                    </span>
                   </div>
                 </button>
               )}
@@ -297,14 +310,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               {currentUser && (
                 <button 
                   onClick={() => handleNavClick(UserRole.PROFILE)}
-                  className="flex items-center w-full mb-6 p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"
+                  className={`flex items-center w-full mb-6 p-4 rounded-xl transition-colors border ${currentRole === UserRole.PROFILE ? 'bg-unikiala-pink/10 border-unikiala-pink' : 'bg-white/5 border-transparent hover:bg-white/10'}`}
                 >
-                  <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center mr-3">
-                    <UserIcon className="w-5 h-5 text-gray-300" />
+                  <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mr-3 border border-white/20">
+                    <span className="font-display font-bold text-lg text-white">{currentUser.name.charAt(0).toUpperCase()}</span>
                   </div>
                   <div className="text-left">
                     <p className="text-white font-bold">{currentUser.name}</p>
-                    <p className="text-xs text-unikiala-pink">Ver Perfil Completo</p>
+                    <p className="text-xs text-unikiala-pink font-bold uppercase">Ver Meu Perfil</p>
                   </div>
                 </button>
               )}
@@ -314,6 +327,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => handleNavClick(UserRole.USER)} 
                 icon={<Ticket className="w-5 h-5" />}
                 label="Eventos & Ingressos"
+              />
+
+              <MobileNavButton 
+                active={currentRole === UserRole.PROFILE} 
+                onClick={() => handleNavClick(UserRole.PROFILE)} 
+                icon={<UserIcon className="w-5 h-5" />}
+                label="Meu Perfil"
               />
 
               {canAccessOrganizer && (
