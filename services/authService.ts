@@ -78,7 +78,8 @@ export const authService = {
         name: profile?.name || data.user.user_metadata?.name || 'Usuário',
         password: '', // Não guardamos senha
         role: (profile?.role as UserRole) || UserRole.USER,
-        isVerified: true 
+        isVerified: true,
+        avatarUrl: profile?.avatar_url
       };
       return { user };
     }
@@ -130,8 +131,6 @@ export const authService = {
       }
 
       // Tentativa de Autenticação Automática Pós-Cadastro
-      // Se o signUp não retornou sessão (data.session null), tentamos fazer login manual agora.
-      // Isso ajuda a persistir a sessão se o 'Confirm Email' estiver desligado mas o signUp não logou auto.
       if (!data.session) {
         await supabase.auth.signInWithPassword({ email, password });
       }
@@ -211,10 +210,31 @@ export const authService = {
           name: profile?.name || session.user.user_metadata.name || 'Usuário',
           password: '',
           role: (profile?.role as UserRole) || UserRole.USER,
-          isVerified: true
+          isVerified: true,
+          avatarUrl: profile?.avatar_url
       };
     } catch (e) {
       return null;
+    }
+  },
+
+  updateUserAvatar: async (userId: string, avatarUrl: string): Promise<boolean> => {
+    if (!isSupabaseConfigured) return true; // Simula sucesso se estiver offline
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', userId);
+        
+      if (error) {
+        console.error("Erro ao atualizar avatar:", error);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error("Erro exceção avatar:", e);
+      return false;
     }
   }
 };

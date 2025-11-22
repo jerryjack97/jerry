@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { User } from '../types';
+import { authService } from '../services/authService';
 import { 
   User as UserIcon, 
   Mail, 
@@ -14,7 +15,9 @@ import {
   EyeOff, 
   Heart,
   Calendar,
-  ShieldCheck
+  ShieldCheck,
+  Camera,
+  Loader2
 } from 'lucide-react';
 
 interface ProfileProps {
@@ -26,6 +29,10 @@ type Tab = 'INFO' | 'HISTORY' | 'WALLET' | 'REVIEWS' | 'PREFS';
 export const Profile: React.FC<ProfileProps> = ({ user }) => {
   const [activeTab, setActiveTab] = useState<Tab>('INFO');
   const [showPhone, setShowPhone] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl);
+  const [isUploading, setIsUploading] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // MOCK DATA (Como não temos backend para isso ainda)
   const mockHistory = [
@@ -42,6 +49,39 @@ export const Profile: React.FC<ProfileProps> = ({ user }) => {
     { id: 1, last4: '4242', brand: 'Visa', expiry: '12/28' },
   ];
 
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        alert("A imagem é muito grande. Tente uma menor que 2MB.");
+        return;
+    }
+
+    setIsUploading(true);
+
+    // Como não temos bucket storage configurado pelo user, usamos Base64
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        
+        // Atualizar no backend (simulado ou real)
+        const success = await authService.updateUserAvatar(user.id, base64String);
+        
+        if (success) {
+            setAvatarUrl(base64String);
+        } else {
+            alert("Erro ao salvar imagem. Tente novamente.");
+        }
+        setIsUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
       {/* Header do Perfil */}
@@ -49,13 +89,35 @@ export const Profile: React.FC<ProfileProps> = ({ user }) => {
         <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-r from-unikiala-pink/20 to-purple-900/20"></div>
         
         <div className="relative flex flex-col md:flex-row items-start md:items-end gap-6 mt-12">
-          <div className="w-24 h-24 md:w-32 md:h-32 bg-black rounded-full border-4 border-unikiala-surface flex items-center justify-center shadow-2xl overflow-hidden">
-             {/* Placeholder Avatar */}
-             <img 
-               src={`https://ui-avatars.com/api/?name=${user.name.replace(' ', '+')}&background=FF00FF&color=000`} 
-               alt={user.name}
-               className="w-full h-full object-cover"
+          
+          {/* Avatar com Upload */}
+          <div className="relative group cursor-pointer" onClick={handleImageClick}>
+             <div className="w-24 h-24 md:w-32 md:h-32 bg-black rounded-full border-4 border-unikiala-surface flex items-center justify-center shadow-2xl overflow-hidden relative">
+                {isUploading ? (
+                    <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-20">
+                        <Loader2 className="w-8 h-8 text-unikiala-pink animate-spin" />
+                    </div>
+                ) : (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <Camera className="w-8 h-8 text-white" />
+                    </div>
+                )}
+                <img 
+                  src={avatarUrl || `https://ui-avatars.com/api/?name=${user.name.replace(' ', '+')}&background=FF00FF&color=000`} 
+                  alt={user.name}
+                  className="w-full h-full object-cover"
+                />
+             </div>
+             <input 
+                type="file" 
+                ref={fileInputRef} 
+                hidden 
+                accept="image/*" 
+                onChange={handleFileChange} 
              />
+             <div className="absolute bottom-0 right-0 bg-unikiala-pink text-black p-1.5 rounded-full border-2 border-unikiala-surface shadow-sm md:hidden">
+                <Camera className="w-4 h-4" />
+             </div>
           </div>
           
           <div className="flex-grow mb-2">

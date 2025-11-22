@@ -18,6 +18,7 @@ export interface User {
   role: UserRole;
   isVerified: boolean;
   verificationCode?: string;
+  avatarUrl?: string;
 }
 
 export interface Event {
