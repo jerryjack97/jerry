@@ -248,15 +248,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* User Profile & Logout - Desktop */}
             <div className="hidden md:flex items-center gap-4">
               {currentUser && (
-                <div className="flex items-center text-right">
+                <button 
+                  onClick={() => handleNavClick(UserRole.PROFILE)}
+                  className="flex items-center text-right group focus:outline-none"
+                  title="Meu Perfil"
+                >
                   <div className="mr-3">
-                    <p className="text-sm font-bold text-white leading-none">{currentUser.name}</p>
-                    <p className="text-xs text-unikiala-pink leading-none mt-1">{currentUser.role}</p>
+                    <p className="text-sm font-bold text-white leading-none group-hover:text-unikiala-pink transition-colors">{currentUser.name}</p>
+                    <p className="text-xs text-gray-400 leading-none mt-1">{currentUser.role}</p>
                   </div>
-                  <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
-                    <UserIcon className="w-4 h-4 text-gray-300" />
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border border-white/10 group-hover:border-unikiala-pink transition-all ${currentRole === UserRole.PROFILE ? 'bg-unikiala-pink/20' : 'bg-white/10'}`}>
+                    <UserIcon className={`w-4 h-4 ${currentRole === UserRole.PROFILE ? 'text-unikiala-pink' : 'text-gray-300'}`} />
                   </div>
-                </div>
+                </button>
               )}
               
               <button 
@@ -291,15 +295,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="md:hidden absolute top-full left-0 w-full bg-black/95 backdrop-blur-xl border-b border-white/10 shadow-2xl animate-in slide-in-from-top-5 z-40">
             <div className="px-4 py-6 space-y-4">
               {currentUser && (
-                <div className="flex items-center mb-6 p-4 bg-white/5 rounded-xl">
+                <button 
+                  onClick={() => handleNavClick(UserRole.PROFILE)}
+                  className="flex items-center w-full mb-6 p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-colors"
+                >
                   <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center mr-3">
                     <UserIcon className="w-5 h-5 text-gray-300" />
                   </div>
-                  <div>
+                  <div className="text-left">
                     <p className="text-white font-bold">{currentUser.name}</p>
-                    <p className="text-xs text-unikiala-pink">{currentUser.role}</p>
+                    <p className="text-xs text-unikiala-pink">Ver Perfil Completo</p>
                   </div>
-                </div>
+                </button>
               )}
 
               <MobileNavButton 

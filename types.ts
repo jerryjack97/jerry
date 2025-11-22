@@ -6,7 +6,8 @@ export enum UserRole {
   ABOUT = 'ABOUT',
   TERMS = 'TERMS',
   PRIVACY = 'PRIVACY',
-  CONTACT = 'CONTACT'
+  CONTACT = 'CONTACT',
+  PROFILE = 'PROFILE'
 }
 
 export interface User {

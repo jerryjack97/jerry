@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Home } from './pages/Home';
 import { Organizer } from './pages/Organizer';
 import { Admin } from './pages/Admin';
 import { About, Contact, Terms, Privacy } from './pages/StaticPages';
+import { Profile } from './pages/Profile';
 import { Auth } from './pages/Auth';
 import { UserRole, Event, OrganizerProfile, User } from './types';
 import { INITIAL_EVENTS } from './constants';
@@ -149,6 +151,8 @@ const App: React.FC = () => {
             onDeleteEvent={handleDeleteEvent} 
           />
         );
+      case UserRole.PROFILE:
+        return currentUser ? <Profile user={currentUser} /> : <Home events={events} />;
       case UserRole.ABOUT:
         return <About />;
       case UserRole.CONTACT:
