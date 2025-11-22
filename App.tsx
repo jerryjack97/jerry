@@ -26,7 +26,9 @@ const App: React.FC = () => {
   const [organizerProfile, setOrganizerProfile] = useState<OrganizerProfile>({
     id: 'user_123',
     name: 'Produtora',
-    isSubscribed: false
+    isSubscribed: false,
+    verificationStatus: 'UNSUBMITTED',
+    balance: 0
   });
 
   const currentRole = history[historyIndex];

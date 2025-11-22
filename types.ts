@@ -14,7 +14,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  password: string; // In a real app, this should be hashed. Storing plain text for demo/localStorage.
+  password: string; 
   role: UserRole;
   isVerified: boolean;
   verificationCode?: string;
@@ -36,6 +36,10 @@ export interface Event {
     lat: number;
     lng: number;
   };
+  // Novos campos para analytics
+  ticketsSold?: number;
+  revenue?: number;
+  status?: 'ACTIVE' | 'DRAFT' | 'PAST' | 'CANCELLED';
 }
 
 export interface Plan {
@@ -48,8 +52,38 @@ export interface Plan {
 
 export interface OrganizerProfile {
   id: string;
-  name: string;
+  name: string; // Nome da Empresa ou Artístico
+  email?: string;
+  nif?: string;
+  bio?: string;
+  category?: string;
+  logoUrl?: string;
   isSubscribed: boolean;
   subscriptionPlanId?: string;
   subscriptionExpiry?: string;
+  verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED' | 'UNSUBMITTED';
+  balance: number;
+}
+
+export interface FinancialTransaction {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  type: 'CREDIT' | 'DEBIT';
+  status: 'COMPLETED' | 'PENDING';
+}
+
+export interface VerificationDocument {
+  id: string;
+  name: string;
+  type: 'CONTRACT' | 'ID' | 'LICENSE';
+  uploadDate: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+}
+
+export interface TicketStats {
+  checkInCount: number;
+  totalSold: number;
+  revenue: number;
 }

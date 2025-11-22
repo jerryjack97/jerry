@@ -1,7 +1,11 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Event, OrganizerProfile } from '../types';
-import { BarChart, DollarSign, Users, Activity, Database, Wifi, WifiOff, Trash2 } from 'lucide-react';
-import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { 
+  LayoutDashboard, Users, ShieldAlert, DollarSign, FileText, 
+  Ban, CheckCircle, XCircle, Search, MoreVertical, AlertTriangle, 
+  Database, Wifi, WifiOff, Trash2, CreditCard
+} from 'lucide-react';
 import { checkConnection, isSupabaseConfigured } from '../services/supabaseClient';
 
 interface AdminProps {
@@ -10,12 +14,10 @@ interface AdminProps {
   onDeleteEvent?: (id: string) => void;
 }
 
-export const Admin: React.FC<AdminProps> = ({ events, organizers, onDeleteEvent }) => {
-  
-  const totalRevenue = organizers.filter(o => o.isSubscribed).length * 500000; 
-  const activeEvents = events.length;
-  const totalOrganizers = organizers.length;
+type Section = 'DASHBOARD' | 'ORGANIZERS' | 'EVENTS' | 'FINANCE' | 'USERS';
 
+export const Admin: React.FC<AdminProps> = ({ events, organizers, onDeleteEvent }) => {
+  const [activeSection, setActiveSection] = useState<Section>('DASHBOARD');
   const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'local' | 'error'>('checking');
 
   useEffect(() => {
@@ -30,158 +32,225 @@ export const Admin: React.FC<AdminProps> = ({ events, organizers, onDeleteEvent 
     verifyDb();
   }, []);
 
-  const chartData = [
-    { name: 'Jan', events: 4 },
-    { name: 'Fev', events: 7 },
-    { name: 'Mar', events: 5 },
-    { name: 'Abr', events: 10 },
-    { name: 'Mai', events: 12 },
-    { name: 'Jun', events: events.length },
-  ];
+  const renderContent = () => {
+     switch (activeSection) {
+        case 'DASHBOARD': return <GlobalDashboard events={events} organizers={organizers} />;
+        case 'ORGANIZERS': return <OrganizerManagement organizers={organizers} />;
+        case 'EVENTS': return <EventModeration events={events} onDeleteEvent={onDeleteEvent} />;
+        case 'FINANCE': return <GlobalFinance />;
+        default: return <GlobalDashboard events={events} organizers={organizers} />;
+     }
+  };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 md:mb-12 gap-4">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-display font-bold text-white">Dashboard Administrativo</h1>
-          <p className="text-gray-400 text-sm mt-1">Visão geral do sistema e métricas de performance.</p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          {/* Indicador de Status do Banco de Dados */}
-          <div className={`flex items-center space-x-2 text-sm px-4 py-2 rounded-full border transition-colors ${
-            dbStatus === 'connected' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
-            dbStatus === 'local' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' :
-            dbStatus === 'error' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
-            'bg-gray-800 border-gray-700 text-gray-400'
-          }`}>
-             {dbStatus === 'connected' && <Wifi className="w-4 h-4" />}
-             {dbStatus === 'local' && <Database className="w-4 h-4" />}
-             {(dbStatus === 'error' || dbStatus === 'checking') && <WifiOff className="w-4 h-4" />}
-             
-             <span className="font-bold">
-               {dbStatus === 'connected' && "Base de Dados: Online"}
-               {dbStatus === 'local' && "Modo Local (Híbrido)"}
-               {dbStatus === 'error' && "Erro de Conexão"}
-               {dbStatus === 'checking' && "Verificando..."}
-             </span>
-          </div>
-        </div>
-      </div>
+    <div className="flex min-h-screen bg-unikiala-black">
+      {/* Admin Sidebar */}
+      <aside className="w-64 bg-unikiala-surface border-r border-white/5 fixed h-full hidden lg:block">
+         <div className="p-6 border-b border-white/5">
+            <h1 className="text-xl font-display font-bold text-white tracking-wider">ADMIN <span className="text-unikiala-pink">PANEL</span></h1>
+            <div className={`mt-2 flex items-center text-xs font-bold px-2 py-1 rounded w-fit ${
+               dbStatus === 'connected' ? 'bg-green-500/10 text-green-400' : 
+               dbStatus === 'local' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-red-500/10 text-red-400'
+            }`}>
+               {dbStatus === 'connected' ? 'Online' : dbStatus === 'local' ? 'Local Mode' : 'Offline'}
+            </div>
+         </div>
+         <nav className="p-4 space-y-1">
+            <AdminNavButton active={activeSection === 'DASHBOARD'} onClick={() => setActiveSection('DASHBOARD')} icon={<LayoutDashboard />} label="Dashboard Global" />
+            <AdminNavButton active={activeSection === 'ORGANIZERS'} onClick={() => setActiveSection('ORGANIZERS')} icon={<Users />} label="Gestão Organizadores" />
+            <AdminNavButton active={activeSection === 'EVENTS'} onClick={() => setActiveSection('EVENTS')} icon={<FileText />} label="Moderação Eventos" />
+            <AdminNavButton active={activeSection === 'FINANCE'} onClick={() => setActiveSection('FINANCE')} icon={<DollarSign />} label="Financeiro Global" />
+            <AdminNavButton active={activeSection === 'USERS'} onClick={() => setActiveSection('USERS')} icon={<ShieldAlert />} label="Usuários & Risco" />
+         </nav>
+      </aside>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12">
-        <StatCard 
-          icon={<DollarSign className="text-black w-6 h-6" />} 
-          label="Receita de Planos" 
-          value={new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(totalRevenue)}
-          color="bg-unikiala-pink"
-        />
-        <StatCard 
-          icon={<Users className="text-black w-6 h-6" />} 
-          label="Organizadores" 
-          value={totalOrganizers.toString()}
-          color="bg-purple-500"
-        />
-        <StatCard 
-          icon={<Activity className="text-black w-6 h-6" />} 
-          label="Eventos Ativos" 
-          value={activeEvents.toString()}
-          color="bg-cyan-400"
-        />
-      </div>
-
-      {/* Analytics Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Chart Section */}
-        <div className="bg-unikiala-surface p-6 md:p-8 rounded-3xl border border-white/5 shadow-xl">
-          <h2 className="text-xl font-bold text-white mb-8 flex items-center">
-            <BarChart className="mr-2 text-gray-400 w-5 h-5" /> Crescimento de Eventos
-          </h2>
-          <div className="h-64 md:h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <RechartsBarChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorEvents" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#FF00FF" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#FF00FF" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
-                <XAxis dataKey="name" stroke="#666" axisLine={false} tickLine={false} />
-                <YAxis stroke="#666" axisLine={false} tickLine={false} />
-                <Tooltip 
-                    cursor={{fill: 'rgba(255, 255, 255, 0.05)'}}
-                    contentStyle={{ backgroundColor: '#000', borderColor: '#333', color: '#fff', borderRadius: '8px' }} 
-                    itemStyle={{ color: '#ff00ff' }}
-                />
-                <Bar dataKey="events" fill="url(#colorEvents)" radius={[4, 4, 0, 0]} barSize={40} />
-              </RechartsBarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Table Section */}
-        <div className="bg-unikiala-surface p-6 md:p-8 rounded-3xl border border-white/5 shadow-xl">
-          <div className="flex justify-between items-center mb-8">
-             <h2 className="text-xl font-bold text-white">Gerenciar Atividades</h2>
-          </div>
-          
-          {/* Scroll Wrapper for Table on Mobile */}
-          <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-             <div className="inline-block min-w-full align-middle overflow-hidden rounded-xl border border-white/5">
-               <table className="min-w-full text-left text-sm text-gray-400">
-                 <thead className="bg-black/50 text-gray-200 font-display">
-                   <tr>
-                     <th className="py-4 px-6 font-semibold whitespace-nowrap">Evento</th>
-                     <th className="py-4 px-6 font-semibold whitespace-nowrap">Data</th>
-                     <th className="py-4 px-6 font-semibold text-right whitespace-nowrap">Preço</th>
-                     <th className="py-4 px-6 font-semibold text-center whitespace-nowrap">Ações</th>
-                   </tr>
-                 </thead>
-                 <tbody className="divide-y divide-white/5">
-                   {events.map((event) => (
-                     <tr key={event.id} className="hover:bg-white/5 transition-colors group">
-                       <td className="py-4 px-6 font-medium text-white whitespace-nowrap">{event.title}</td>
-                       <td className="py-4 px-6 whitespace-nowrap">{new Date(event.date).toLocaleDateString('pt-AO')}</td>
-                       <td className="py-4 px-6 text-right font-mono text-unikiala-pink whitespace-nowrap">
-                         {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(event.price)}
-                       </td>
-                       <td className="py-4 px-6 text-center whitespace-nowrap">
-                          <button 
-                            onClick={() => onDeleteEvent && onDeleteEvent(event.id)}
-                            className="p-2 hover:bg-red-500/20 rounded-lg text-gray-500 hover:text-red-500 transition-colors"
-                            title="Apagar Evento"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                       </td>
-                     </tr>
-                   ))}
-                 </tbody>
-               </table>
-               {events.length === 0 && (
-                 <div className="text-center py-8 text-gray-500">Nenhum evento encontrado.</div>
-               )}
-             </div>
-          </div>
-        </div>
-      </div>
+      {/* Main Admin Content */}
+      <main className="flex-1 lg:ml-64 p-6 md:p-10 overflow-y-auto">
+         {renderContent()}
+      </main>
     </div>
   );
 };
 
-const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: string; color: string }> = ({ icon, label, value, color }) => (
-  <div className="bg-unikiala-surface p-6 rounded-2xl border border-white/5 hover:border-white/20 transition-colors relative overflow-hidden group">
-    <div className={`absolute top-0 right-0 w-24 h-24 ${color} opacity-5 blur-3xl rounded-full -mr-10 -mt-10 group-hover:opacity-10 transition-opacity`}></div>
-    <div className="flex items-center mb-4">
-      <div className={`p-3 ${color} rounded-xl shadow-lg`}>
-        {icon}
+// --- SUB-COMPONENTS ---
+
+const AdminNavButton: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNode; label: string }> = ({ active, onClick, icon, label }) => (
+   <button
+     onClick={onClick}
+     className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors font-medium text-sm ${
+       active 
+         ? 'bg-unikiala-pink text-black font-bold' 
+         : 'text-gray-400 hover:bg-white/5 hover:text-white'
+     }`}
+   >
+     <span className="mr-3 w-5 h-5">{icon}</span>
+     {label}
+   </button>
+ );
+
+const GlobalDashboard: React.FC<{ events: Event[], organizers: OrganizerProfile[] }> = ({ events, organizers }) => (
+   <div className="space-y-8 animate-in fade-in duration-500">
+      <h2 className="text-3xl font-bold text-white">Visão Geral da Plataforma</h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+         <KPIBox label="GMV Total (Vol. Transacionado)" value="245.8M Kz" change="+12%" />
+         <KPIBox label="Receita Líquida (Taxas)" value="24.5M Kz" change="+15%" />
+         <KPIBox label="Usuários Ativos" value="12,450" change="+8%" />
+         <KPIBox label="Eventos Publicados" value={events.length.toString()} change="+3" />
       </div>
-    </div>
-    <div>
-      <p className="text-gray-500 text-sm font-medium mb-1">{label}</p>
-      <p className="text-2xl md:text-3xl font-display font-bold text-white">{value}</p>
-    </div>
-  </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+         <div className="bg-unikiala-surface border border-white/5 rounded-2xl p-6">
+            <h3 className="text-white font-bold mb-6">Organizadores Pendentes de Aprovação</h3>
+            <div className="space-y-4">
+               {/* Mock Pending Organizers */}
+               {[1, 2].map(i => (
+                  <div key={i} className="flex items-center justify-between bg-black/20 p-4 rounded-xl">
+                     <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-700 rounded-full"></div>
+                        <div>
+                           <p className="text-white font-bold">Nova Produtora {i}</p>
+                           <p className="text-xs text-gray-400">CNPJ/NIF Enviado</p>
+                        </div>
+                     </div>
+                     <div className="flex gap-2">
+                        <button className="p-2 bg-green-500/20 text-green-400 rounded hover:bg-green-500/30"><CheckCircle className="w-4 h-4" /></button>
+                        <button className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30"><XCircle className="w-4 h-4" /></button>
+                     </div>
+                  </div>
+               ))}
+            </div>
+         </div>
+
+         <div className="bg-unikiala-surface border border-white/5 rounded-2xl p-6">
+            <h3 className="text-white font-bold mb-6">Atividades Recentes do Sistema</h3>
+            <div className="space-y-4 text-sm">
+               <LogItem action="Novo Cadastro" detail="Usuário João Silva" time="2 min atrás" />
+               <LogItem action="Venda Confirmada" detail="3x Ingressos - Jazz Fest" time="5 min atrás" />
+               <LogItem action="Alerta de Risco" detail="Tentativa de login suspeita (IP Russo)" time="10 min atrás" type="alert" />
+            </div>
+         </div>
+      </div>
+   </div>
+);
+
+const OrganizerManagement: React.FC<{ organizers: OrganizerProfile[] }> = ({ organizers }) => (
+   <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex justify-between items-center">
+         <h2 className="text-2xl font-bold text-white">Gestão de Organizadores</h2>
+         <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input type="text" placeholder="Buscar por NIF ou Nome" className="bg-unikiala-surface border border-white/10 rounded-lg pl-10 pr-4 py-2 text-white text-sm w-64" />
+         </div>
+      </div>
+
+      <div className="bg-unikiala-surface border border-white/5 rounded-2xl overflow-hidden">
+         <table className="w-full text-left text-sm">
+            <thead className="bg-black/40 text-gray-400 font-display uppercase">
+               <tr>
+                  <th className="p-4">Nome / Empresa</th>
+                  <th className="p-4">Status</th>
+                  <th className="p-4">Saldo Retido</th>
+                  <th className="p-4">Documentos</th>
+                  <th className="p-4 text-right">Ações</th>
+               </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+               {organizers.map((org, idx) => (
+                  <tr key={idx} className="hover:bg-white/5">
+                     <td className="p-4">
+                        <p className="text-white font-bold">{org.name}</p>
+                        <p className="text-xs text-gray-500">{org.email || 'sem email'}</p>
+                     </td>
+                     <td className="p-4">
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${org.isSubscribed ? 'bg-green-500/10 text-green-400' : 'bg-gray-700 text-gray-400'}`}>
+                           {org.isSubscribed ? 'Assinante' : 'Grátis'}
+                        </span>
+                     </td>
+                     <td className="p-4 text-white">1.2M Kz</td>
+                     <td className="p-4">
+                        <span className="text-yellow-400 text-xs flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Pendente</span>
+                     </td>
+                     <td className="p-4 text-right flex justify-end gap-2">
+                        <button className="text-gray-400 hover:text-white"><MoreVertical className="w-4 h-4" /></button>
+                     </td>
+                  </tr>
+               ))}
+            </tbody>
+         </table>
+      </div>
+   </div>
+);
+
+const EventModeration: React.FC<{ events: Event[], onDeleteEvent?: (id: string) => void }> = ({ events, onDeleteEvent }) => (
+   <div className="space-y-6 animate-in fade-in duration-500">
+      <h2 className="text-2xl font-bold text-white">Moderação de Eventos</h2>
+      
+      <div className="bg-unikiala-surface border border-white/5 rounded-2xl overflow-hidden">
+         <table className="w-full text-left text-sm">
+            <thead className="bg-black/40 text-gray-400 font-display uppercase">
+               <tr>
+                  <th className="p-4">Evento</th>
+                  <th className="p-4">Organizador</th>
+                  <th className="p-4">Data</th>
+                  <th className="p-4">Status</th>
+                  <th className="p-4 text-right">Ações</th>
+               </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+               {events.map(evt => (
+                  <tr key={evt.id} className="hover:bg-white/5">
+                     <td className="p-4 font-medium text-white">{evt.title}</td>
+                     <td className="p-4 text-gray-400">ID: {evt.organizerId}</td>
+                     <td className="p-4 text-gray-400">{new Date(evt.date).toLocaleDateString()}</td>
+                     <td className="p-4"><span className="text-green-400 text-xs bg-green-500/10 px-2 py-1 rounded">Publicado</span></td>
+                     <td className="p-4 text-right">
+                        <button onClick={() => onDeleteEvent && onDeleteEvent(evt.id)} className="text-red-500 hover:bg-red-500/10 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
+                     </td>
+                  </tr>
+               ))}
+            </tbody>
+         </table>
+      </div>
+   </div>
+);
+
+const GlobalFinance: React.FC = () => (
+   <div className="space-y-6 animate-in fade-in duration-500">
+      <h2 className="text-2xl font-bold text-white">Controle Financeiro Global</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+         <div className="bg-green-900/20 border border-green-500/30 p-6 rounded-2xl">
+            <h3 className="text-green-400 text-sm uppercase font-bold mb-2">Saldo em Custódia</h3>
+            <p className="text-3xl text-white font-display font-bold">125.4M Kz</p>
+         </div>
+         <div className="bg-unikiala-surface border border-white/10 p-6 rounded-2xl">
+            <h3 className="text-gray-400 text-sm uppercase font-bold mb-2">Repasses Pendentes</h3>
+            <p className="text-3xl text-white font-display font-bold">45.2M Kz</p>
+         </div>
+         <div className="bg-unikiala-surface border border-white/10 p-6 rounded-2xl">
+            <h3 className="text-gray-400 text-sm uppercase font-bold mb-2">Taxas Coletadas (Mês)</h3>
+            <p className="text-3xl text-unikiala-pink font-display font-bold">2.8M Kz</p>
+         </div>
+      </div>
+   </div>
+);
+
+const KPIBox: React.FC<{ label: string, value: string, change: string }> = ({ label, value, change }) => (
+   <div className="bg-unikiala-surface border border-white/5 p-6 rounded-2xl">
+      <p className="text-gray-400 text-xs font-bold uppercase mb-2">{label}</p>
+      <div className="flex items-end justify-between">
+         <h3 className="text-2xl font-bold text-white">{value}</h3>
+         <span className="text-green-400 text-xs font-bold bg-green-500/10 px-2 py-1 rounded">{change}</span>
+      </div>
+   </div>
+);
+
+const LogItem: React.FC<{ action: string, detail: string, time: string, type?: 'alert' | 'normal' }> = ({ action, detail, time, type }) => (
+   <div className="flex justify-between items-center border-b border-white/5 last:border-0 pb-2 last:pb-0">
+      <div>
+         <p className={`font-bold ${type === 'alert' ? 'text-red-400' : 'text-white'}`}>{action}</p>
+         <p className="text-gray-500 text-xs">{detail}</p>
+      </div>
+      <span className="text-gray-600 text-xs">{time}</span>
+   </div>
 );
