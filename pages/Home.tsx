@@ -13,6 +13,9 @@ interface HomeProps {
 export const Home: React.FC<HomeProps> = ({ events }) => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  const eventsSectionRef = useRef<HTMLDivElement>(null);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(amount);
@@ -28,8 +31,26 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
     setSelectedEvent(null);
   };
 
-  const featuredEvents = events.filter(e => e.highlighted);
-  const regularEvents = events.filter(e => !e.highlighted);
+  const handleExploreClick = () => {
+    eventsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const clearSearch = () => {
+    setSearchTerm('');
+  };
+
+  // Filter events based on search term
+  const filteredEvents = events.filter(event => {
+    const term = searchTerm.toLowerCase();
+    return (
+      event.title.toLowerCase().includes(term) ||
+      event.location.toLowerCase().includes(term) ||
+      event.description.toLowerCase().includes(term)
+    );
+  });
+
+  const featuredEvents = filteredEvents.filter(e => e.highlighted);
+  const regularEvents = filteredEvents.filter(e => !e.highlighted);
 
   return (
     <div className="pb-20 relative">
@@ -65,23 +86,36 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
           </p>
           
           {/* Search Bar Mockup - Responsive Stack */}
-          <div className="w-full max-w-2xl mx-auto bg-black/40 md:bg-white/10 backdrop-blur-lg border border-white/20 p-3 rounded-3xl md:rounded-full flex flex-col md:flex-row items-center shadow-2xl gap-3 md:gap-0">
-            <div className="flex items-center w-full md:w-auto flex-grow">
-              <Search className="text-gray-400 w-5 h-5 ml-2 md:ml-4" />
+          <div className="w-full max-w-2xl mx-auto bg-black/40 md:bg-white/10 backdrop-blur-lg border border-white/20 p-3 rounded-3xl md:rounded-full flex flex-col md:flex-row items-center shadow-2xl gap-3 md:gap-0 transition-all focus-within:border-unikiala-pink/50 focus-within:bg-black/60">
+            <div className="flex items-center w-full md:w-auto flex-grow relative">
+              <Search className="text-gray-400 w-5 h-5 ml-2 md:ml-4 shrink-0" />
               <input 
                 type="text" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Busque por evento, artista ou local..." 
                 className="flex-grow bg-transparent border-none focus:ring-0 text-white placeholder-gray-400 px-4 h-10 outline-none w-full text-sm md:text-base"
               />
+              {searchTerm && (
+                <button 
+                  onClick={clearSearch}
+                  className="absolute right-2 p-1 text-gray-400 hover:text-white bg-white/10 rounded-full"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
-            <button className="w-full md:w-auto bg-unikiala-pink hover:bg-unikiala-pinkDim text-black font-bold px-8 py-3 rounded-xl md:rounded-full transition-all shadow-neon hover:shadow-neon-hover">
+            <button 
+              onClick={handleExploreClick}
+              className="w-full md:w-auto bg-unikiala-pink hover:bg-unikiala-pinkDim text-black font-bold px-8 py-3 rounded-xl md:rounded-full transition-all shadow-neon hover:shadow-neon-hover"
+            >
               Explorar
             </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div ref={eventsSectionRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
         
         {/* MAP SECTION */}
         <section className="mb-12 md:mb-20 animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -95,9 +129,19 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
              </div>
           </div>
           <div className="h-[350px] md:h-[450px] w-full rounded-3xl overflow-hidden border border-white/10 shadow-neon relative z-0">
-            <EventMap events={events} onEventClick={handleBuyClick} />
+            <EventMap events={filteredEvents} onEventClick={handleBuyClick} />
           </div>
         </section>
+
+        {/* Search Results Feedback */}
+        {searchTerm && filteredEvents.length === 0 && (
+          <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/10 mb-12">
+            <Search className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-white mb-2">Nenhum evento encontrado</h3>
+            <p className="text-gray-400">Não encontramos resultados para "{searchTerm}". Tente outro termo.</p>
+            <button onClick={clearSearch} className="mt-4 text-unikiala-pink hover:underline">Limpar busca</button>
+          </div>
+        )}
 
         {/* Destaques Section */}
         {featuredEvents.length > 0 && (
@@ -107,9 +151,9 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
                 <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-2">Em Destaque</h2>
                 <div className="h-1 w-20 bg-unikiala-pink rounded-full"></div>
               </div>
-              <button className="hidden md:flex items-center text-unikiala-pink hover:text-white transition-colors font-bold text-sm">
+              {/* <button className="hidden md:flex items-center text-unikiala-pink hover:text-white transition-colors font-bold text-sm">
                 Ver todos <ArrowRight className="w-4 h-4 ml-2" />
-              </button>
+              </button> */}
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
@@ -127,22 +171,24 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
         )}
 
         {/* Todos Eventos Section */}
-        <section>
-          <h2 className="text-2xl md:text-3xl font-display font-bold text-white mb-6 md:mb-8 flex items-center">
-            <span className="w-1.5 md:w-2 h-6 md:h-8 bg-gray-700 mr-3 md:mr-4 rounded-full"></span>
-            Próximos Eventos
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-            {regularEvents.map((event) => (
-              <EventCard 
-                key={event.id} 
-                event={event} 
-                formatCurrency={formatCurrency}
-                onBuy={() => handleBuyClick(event)}
-              />
-            ))}
-          </div>
-        </section>
+        {regularEvents.length > 0 && (
+          <section>
+            <h2 className="text-2xl md:text-3xl font-display font-bold text-white mb-6 md:mb-8 flex items-center">
+              <span className="w-1.5 md:w-2 h-6 md:h-8 bg-gray-700 mr-3 md:mr-4 rounded-full"></span>
+              Próximos Eventos
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+              {regularEvents.map((event) => (
+                <EventCard 
+                  key={event.id} 
+                  event={event} 
+                  formatCurrency={formatCurrency}
+                  onBuy={() => handleBuyClick(event)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
@@ -152,6 +198,7 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
 const EventMap: React.FC<{ events: Event[]; onEventClick: (e: Event) => void }> = ({ events, onEventClick }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -176,9 +223,9 @@ const EventMap: React.FC<{ events: Event[]; onEventClick: (e: Event) => void }> 
 
     const map = mapInstanceRef.current;
 
-    // Clear existing markers logic would go here if we had updates, 
-    // but for simplicity in this demo we just add them.
-    // Ideally we'd keep a ref to markers array.
+    // Clear existing markers
+    markersRef.current.forEach(marker => map.removeLayer(marker));
+    markersRef.current = [];
 
     events.forEach(event => {
       if (event.coordinates) {
@@ -215,16 +262,12 @@ const EventMap: React.FC<{ events: Event[]; onEventClick: (e: Event) => void }> 
             };
           }
         });
+        
+        markersRef.current.push(marker);
       }
     });
 
-    // Cleanup
-    return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
-    };
+    // Cleanup handled by markersRef management
   }, [events, onEventClick]);
 
   return <div ref={mapContainerRef} className="w-full h-full bg-[#050505]" />;
