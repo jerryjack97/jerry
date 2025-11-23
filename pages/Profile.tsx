@@ -17,7 +17,9 @@ import {
   Calendar,
   ShieldCheck,
   Camera,
-  Loader2
+  Loader2,
+  Smartphone,
+  Zap
 } from 'lucide-react';
 
 interface ProfileProps {
@@ -45,8 +47,32 @@ export const Profile: React.FC<ProfileProps> = ({ user }) => {
     { id: 2, event: 'Show de Humor', rating: 4, comment: 'Muito bom, mas atrasou um pouco.', type: 'GIVEN' },
   ];
 
-  const mockCards = [
-    { id: 1, last4: '4242', brand: 'Visa', expiry: '12/28' },
+  const mockPaymentMethods = [
+    { 
+      id: 1, 
+      type: 'MCX', 
+      label: 'Multicaixa Express', 
+      detail: '923 ••• •••', 
+      holder: user.name,
+      color: 'from-orange-900/40 to-black border-orange-500/30'
+    },
+    { 
+      id: 2, 
+      type: 'KWIK', 
+      label: 'Kwik Instant', 
+      detail: '923 ••• •••', 
+      holder: user.name,
+      color: 'from-blue-900/40 to-black border-blue-500/30'
+    },
+    { 
+      id: 3, 
+      type: 'CARD', 
+      label: 'Visa', 
+      detail: '•••• 4242', 
+      expiry: '12/28',
+      holder: user.name,
+      color: 'from-gray-800 to-black border-white/10'
+    },
   ];
 
   const handleImageClick = () => {
@@ -181,36 +207,50 @@ export const Profile: React.FC<ProfileProps> = ({ user }) => {
           {activeTab === 'WALLET' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
               <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-                <CreditCard className="mr-3 text-unikiala-pink" /> Métodos de Pagamento
+                <CreditCard className="mr-3 text-unikiala-pink" /> Carteira Digital
               </h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                {mockCards.map(card => (
-                   <div key={card.id} className="bg-gradient-to-br from-gray-800 to-black border border-white/10 p-6 rounded-xl flex flex-col justify-between h-40 relative overflow-hidden group hover:border-unikiala-pink/50 transition-colors">
+                {mockPaymentMethods.map(method => (
+                   <div key={method.id} className={`bg-gradient-to-br ${method.color} border p-6 rounded-xl flex flex-col justify-between h-44 relative overflow-hidden group hover:border-unikiala-pink/50 transition-colors shadow-lg`}>
                       <div className="flex justify-between items-start">
-                         <span className="text-gray-400 font-mono uppercase tracking-widest text-xs">Cartão de Crédito</span>
-                         <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4 opacity-70 grayscale group-hover:grayscale-0 transition-all" />
+                         <span className="text-white/70 font-mono uppercase tracking-widest text-xs font-bold">{method.label}</span>
+                         {method.type === 'CARD' && <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4 opacity-70 grayscale group-hover:grayscale-0 transition-all" />}
+                         {method.type === 'MCX' && <Smartphone className="w-6 h-6 text-orange-500 opacity-80" />}
+                         {method.type === 'KWIK' && <Zap className="w-6 h-6 text-blue-400 opacity-80" />}
                       </div>
-                      <div className="text-xl text-white font-mono tracking-widest mt-4">
-                         •••• •••• •••• {card.last4}
+                      
+                      <div className="text-2xl text-white font-mono tracking-widest mt-4 flex items-center gap-2">
+                         {method.detail}
+                         {method.type === 'MCX' && <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded font-sans tracking-normal">Express</span>}
                       </div>
+
                       <div className="flex justify-between items-end mt-auto">
                          <div>
-                            <span className="text-[10px] text-gray-500 block uppercase">Titular</span>
-                            <span className="text-sm text-gray-300">{user.name.toUpperCase()}</span>
+                            <span className="text-[10px] text-white/50 block uppercase">Titular</span>
+                            <span className="text-sm text-gray-200">{method.holder.toUpperCase()}</span>
                          </div>
-                         <div>
-                            <span className="text-[10px] text-gray-500 block uppercase">Validade</span>
-                            <span className="text-sm text-gray-300">{card.expiry}</span>
-                         </div>
+                         {method.type === 'CARD' && (
+                            <div>
+                               <span className="text-[10px] text-white/50 block uppercase">Validade</span>
+                               <span className="text-sm text-gray-200">{method.expiry}</span>
+                            </div>
+                         )}
+                         {(method.type === 'MCX' || method.type === 'KWIK') && (
+                            <div className="flex items-center text-green-400 text-xs font-bold">
+                               <div className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></div> Ativo
+                            </div>
+                         )}
                       </div>
                    </div>
                 ))}
-                <button className="border-2 border-dashed border-white/10 hover:border-unikiala-pink rounded-xl p-6 flex flex-col items-center justify-center text-gray-500 hover:text-unikiala-pink transition-colors h-40">
-                   <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center mb-2">
-                      <CreditCard className="w-5 h-5" />
+                
+                <button className="border-2 border-dashed border-white/10 hover:border-unikiala-pink rounded-xl p-6 flex flex-col items-center justify-center text-gray-500 hover:text-unikiala-pink transition-colors h-44 group">
+                   <div className="w-12 h-12 rounded-full bg-white/5 group-hover:bg-unikiala-pink/10 flex items-center justify-center mb-3 transition-colors">
+                      <CreditCard className="w-6 h-6" />
                    </div>
-                   <span className="text-sm font-bold">Adicionar Novo Cartão</span>
+                   <span className="text-sm font-bold">Adicionar Novo Método</span>
+                   <span className="text-xs text-gray-500 mt-1">Cartão, MCX ou Kwik</span>
                 </button>
               </div>
 
