@@ -451,6 +451,70 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCur
     onClose();
   };
 
+  const handlePrintTicket = (ticketCode: string, qrCodeUrl: string) => {
+    const printWindow = window.open('', '', 'width=420,height=700');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+            <head>
+              <title>UNIKIALA Ticket - ${name}</title>
+              <link rel="preconnect" href="https://fonts.googleapis.com">
+              <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+              <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+              <style>
+                  body { background-color: #050505; color: white; font-family: 'Outfit', sans-serif; display: flex; justify-content: center; padding: 20px; margin: 0; }
+                  .ticket { width: 100%; max-width: 350px; border: 1px solid #333; border-radius: 20px; overflow: hidden; background: #111; position: relative; box-shadow: 0 10px 30px rgba(255,0,255,0.2); }
+                  .header { background: linear-gradient(135deg, #FF00FF, #800080); padding: 20px; text-align: center; }
+                  .content { padding: 30px; text-align: center; }
+                  .qr-container { background: #000; padding: 10px; border-radius: 12px; border: 1px solid #333; display: inline-block; margin: 20px 0; }
+                  .label { font-size: 10px; text-transform: uppercase; color: #666; font-weight: 700; margin-bottom: 2px; }
+                  .value { font-size: 16px; font-weight: 600; margin-bottom: 15px; color: white; }
+                  .code { font-family: monospace; font-size: 20px; color: #FF00FF; font-weight: bold; letter-spacing: 2px; margin: 0; }
+                  @media print { 
+                    body { background: none; } 
+                    .ticket { border: 1px solid #000; box-shadow: none; } 
+                    .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                  }
+              </style>
+            </head>
+            <body>
+              <div class="ticket">
+                  <div class="header">
+                    <h1 style="font-family: 'Syne'; margin:0; font-size: 24px;">UNIKIALA</h1>
+                    <p style="margin:0; font-size: 10px; font-weight: bold; opacity: 0.8; text-transform: uppercase; letter-spacing: 2px;">Bilhete Digital Oficial</p>
+                  </div>
+                  <div class="content">
+                    <h2 style="margin:0 0 5px 0; font-family: 'Syne';">${event.title}</h2>
+                    <p style="color: #888; font-size: 12px; margin-bottom: 20px;">${new Date(event.date).toLocaleDateString()}</p>
+                    
+                    <div class="qr-container">
+                        <img src="${qrCodeUrl}" width="180" height="180"/>
+                    </div>
+                    
+                    <div style="text-align: left;">
+                        <div class="label">Titular</div>
+                        <div class="value">${name}</div>
+                        
+                        <div class="label">Categoria</div>
+                        <div class="value">${event.category || 'Geral'}</div>
+                    </div>
+                    
+                    <div style="border-top: 1px dashed #333; margin: 20px 0;"></div>
+
+                    <div class="label">Código de Validação</div>
+                    <p class="code">${ticketCode}</p>
+                  </div>
+              </div>
+              <script>
+                  setTimeout(() => window.print(), 800);
+              </script>
+            </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  };
+
   // Se o pagamento Kwik foi sucesso, mostrar o BILHETE DIGITAL AUTOMATICAMENTE
   if (paymentSuccess) {
     const ticketCode = paymentRef || `TIX-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
@@ -487,7 +551,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCur
 
                  <div className="space-y-3">
                     <button 
-                       onClick={() => window.print()}
+                       onClick={() => handlePrintTicket(ticketCode, qrCodeUrl)}
                        className="w-full bg-white text-black font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center"
                     >
                        <Printer className="w-4 h-4 mr-2" /> Imprimir / Salvar PDF
