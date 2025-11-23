@@ -6,7 +6,8 @@ import {
   LayoutDashboard, Calendar, DollarSign, BarChart3, ShieldCheck, Settings, 
   QrCode, MessageSquare, Plus, Upload, Image as ImageIcon, Sparkles, 
   Loader2, Phone, Check, X, FileText, TrendingUp, Wallet, Bell, Search, 
-  ChevronRight, Download, AlertCircle, Lock, Scan, CheckCircle, XCircle, RefreshCw
+  ChevronRight, Download, AlertCircle, Lock, Scan, CheckCircle, XCircle, RefreshCw,
+  Printer, Ticket
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area } from 'recharts';
 
@@ -288,10 +289,19 @@ const CompanyProfile: React.FC<{ organizer: OrganizerProfile }> = ({ organizer }
 );
 
 const CheckInTool: React.FC = () => {
+   const [activeTab, setActiveTab] = useState<'VALIDATE' | 'ISSUE'>('VALIDATE');
+   
+   // --- STATES FOR SCANNER ---
    const [scanning, setScanning] = useState(false);
    const [manualCode, setManualCode] = useState('');
    const [lastResult, setLastResult] = useState<{ status: 'SUCCESS' | 'ERROR' | 'USED', message: string, name?: string } | null>(null);
    const [recentScans, setRecentScans] = useState<Array<{ code: string, name: string, time: string, status: string }>>([]);
+
+   // --- STATES FOR GENERATOR ---
+   const [genName, setGenName] = useState('');
+   const [genEvent, setGenEvent] = useState('Festival de Jazz');
+   const [genType, setGenType] = useState('Normal');
+   const [generatedTicket, setGeneratedTicket] = useState<{ name: string, event: string, type: string, code: string, qrUrl: string } | null>(null);
 
    // Mock Tickets Database
    const MOCK_TICKETS: Record<string, { name: string, event: string, used: boolean }> = {
@@ -300,6 +310,7 @@ const CheckInTool: React.FC = () => {
       'TIX-789': { name: 'Pedro Paulo', event: 'Workshop Arte', used: false },
    };
 
+   // --- SCANNER LOGIC ---
    const handleScan = useCallback((code: string) => {
       setScanning(false);
       const ticket = MOCK_TICKETS[code];
@@ -324,14 +335,10 @@ const CheckInTool: React.FC = () => {
       setRecentScans(prev => [{ code, name: ticket.name, time: now, status: 'VALID' }, ...prev].slice(0, 5));
    }, []);
 
-   // Simulate Camera Scanning
    const startCameraSimulation = () => {
       setScanning(true);
       setLastResult(null);
-      
-      // Simulate finding a code after 2 seconds
       setTimeout(() => {
-         // Randomly pick a scenario for demo purposes
          const scenarios = ['TIX-123', 'TIX-456', 'INVALID-CODE'];
          const randomCode = scenarios[Math.floor(Math.random() * scenarios.length)];
          handleScan(randomCode);
@@ -344,113 +351,285 @@ const CheckInTool: React.FC = () => {
       setManualCode('');
    };
 
+   // --- GENERATOR LOGIC ---
+   const handleGenerate = () => {
+      if (!genName) return alert("Insira o nome do cliente");
+      
+      const code = `TIX-${Math.floor(Math.random() * 1000000)}`;
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${code}&color=FF00FF&bgcolor=000000`;
+      
+      setGeneratedTicket({
+         name: genName,
+         event: genEvent,
+         type: genType,
+         code,
+         qrUrl
+      });
+   };
+
+   const handlePrint = () => {
+      if (!generatedTicket) return;
+      const printWindow = window.open('', '', 'width=400,height=600');
+      if (printWindow) {
+         printWindow.document.write(`
+            <html>
+               <head>
+                  <title>Ticket - ${generatedTicket.name}</title>
+                  <style>
+                     body { font-family: sans-serif; text-align: center; background: #fff; padding: 20px; }
+                     .ticket { border: 2px dashed #000; padding: 20px; border-radius: 10px; }
+                     h1 { color: #000; margin-bottom: 5px; }
+                     .meta { font-size: 14px; color: #555; margin-bottom: 20px; }
+                     img { margin: 20px 0; }
+                     .code { font-family: monospace; font-size: 18px; font-weight: bold; letter-spacing: 2px; }
+                     .footer { margin-top: 20px; font-size: 10px; color: #888; }
+                  </style>
+               </head>
+               <body>
+                  <div class="ticket">
+                     <h1>UNIKIALA</h1>
+                     <p>${generatedTicket.event}</p>
+                     <div class="meta">
+                        <strong>${generatedTicket.name}</strong><br>
+                        ${generatedTicket.type}
+                     </div>
+                     <img src="${generatedTicket.qrUrl.replace('color=FF00FF&bgcolor=000000', '')}" width="150" />
+                     <p class="code">${generatedTicket.code}</p>
+                     <div class="footer">Gerado em ${new Date().toLocaleString()}</div>
+                  </div>
+                  <script>window.print();</script>
+               </body>
+            </html>
+         `);
+         printWindow.document.close();
+      }
+   };
+
    return (
-      <div className="max-w-2xl mx-auto animate-in fade-in duration-500">
+      <div className="max-w-4xl mx-auto animate-in fade-in duration-500">
          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-white mb-2">Validador de Ingressos</h2>
-            <p className="text-gray-400 text-sm">Use a câmera ou digite o código para validar a entrada.</p>
+            <h2 className="text-2xl font-bold text-white mb-2">Controle de Acesso & Ingressos</h2>
+            <p className="text-gray-400 text-sm">Gerencie a entrada e emissão de bilhetes.</p>
          </div>
 
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Scanner Section */}
-            <div className="bg-unikiala-surface border border-white/10 p-6 rounded-3xl shadow-2xl flex flex-col items-center">
-               <div className="aspect-square w-full bg-black rounded-2xl mb-6 relative overflow-hidden border border-white/20 flex items-center justify-center group">
-                  {scanning ? (
-                     <>
-                        <div className="absolute inset-0 bg-green-500/10 z-10"></div>
-                        <div className="absolute top-0 left-0 w-full h-1 bg-green-500 shadow-[0_0_15px_rgba(34,197,94,1)] animate-[scan_2s_linear_infinite] z-20"></div>
-                        <p className="text-green-400 text-xs font-bold animate-pulse z-30">Procurando QR Code...</p>
-                     </>
-                  ) : (
-                     <>
-                        <QrCode className="w-16 h-16 text-gray-700 group-hover:text-unikiala-pink transition-colors" />
-                        <p className="absolute bottom-4 text-gray-500 text-xs">Câmera em Standby</p>
-                     </>
+         {/* Navigation Tabs */}
+         <div className="flex justify-center mb-8">
+            <div className="bg-white/5 p-1 rounded-xl flex gap-1 border border-white/10">
+               <button 
+                  onClick={() => setActiveTab('VALIDATE')}
+                  className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center ${activeTab === 'VALIDATE' ? 'bg-unikiala-pink text-black shadow-neon' : 'text-gray-400 hover:text-white'}`}
+               >
+                  <Scan className="w-4 h-4 mr-2" /> Validar (Scanner)
+               </button>
+               <button 
+                  onClick={() => setActiveTab('ISSUE')}
+                  className={`px-6 py-2 rounded-lg text-sm font-bold transition-all flex items-center ${activeTab === 'ISSUE' ? 'bg-unikiala-pink text-black shadow-neon' : 'text-gray-400 hover:text-white'}`}
+               >
+                  <Ticket className="w-4 h-4 mr-2" /> Emitir Ingressos
+               </button>
+            </div>
+         </div>
+
+         {activeTab === 'VALIDATE' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               {/* Scanner Section */}
+               <div className="bg-unikiala-surface border border-white/10 p-6 rounded-3xl shadow-2xl flex flex-col items-center">
+                  <div className="aspect-square w-full bg-black rounded-2xl mb-6 relative overflow-hidden border border-white/20 flex items-center justify-center group">
+                     {scanning ? (
+                        <>
+                           <div className="absolute inset-0 bg-green-500/10 z-10"></div>
+                           <div className="absolute top-0 left-0 w-full h-1 bg-green-500 shadow-[0_0_15px_rgba(34,197,94,1)] animate-[scan_2s_linear_infinite] z-20"></div>
+                           <p className="text-green-400 text-xs font-bold animate-pulse z-30">Procurando QR Code...</p>
+                        </>
+                     ) : (
+                        <>
+                           <QrCode className="w-16 h-16 text-gray-700 group-hover:text-unikiala-pink transition-colors" />
+                           <p className="absolute bottom-4 text-gray-500 text-xs">Câmera em Standby</p>
+                        </>
+                     )}
+                  </div>
+
+                  {lastResult && (
+                     <div className={`w-full p-4 rounded-xl mb-4 text-center animate-in zoom-in duration-300 ${
+                        lastResult.status === 'SUCCESS' ? 'bg-green-500/20 border border-green-500 text-green-400' :
+                        lastResult.status === 'USED' ? 'bg-yellow-500/20 border border-yellow-500 text-yellow-400' :
+                        'bg-red-500/20 border border-red-500 text-red-400'
+                     }`}>
+                        {lastResult.status === 'SUCCESS' && <CheckCircle className="w-8 h-8 mx-auto mb-2" />}
+                        {lastResult.status === 'USED' && <AlertCircle className="w-8 h-8 mx-auto mb-2" />}
+                        {lastResult.status === 'ERROR' && <XCircle className="w-8 h-8 mx-auto mb-2" />}
+                        
+                        <h3 className="font-bold text-lg">{lastResult.message}</h3>
+                        {lastResult.name && <p className="text-sm text-white mt-1">{lastResult.name}</p>}
+                     </div>
                   )}
+
+                  <button 
+                     onClick={startCameraSimulation}
+                     disabled={scanning}
+                     className={`w-full py-4 rounded-xl font-bold flex items-center justify-center transition-all ${
+                        scanning ? 'bg-gray-700 cursor-not-allowed text-gray-400' : 'bg-unikiala-pink text-black hover:bg-white hover:shadow-neon'
+                     }`}
+                  >
+                     {scanning ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Scan className="w-5 h-5 mr-2" />}
+                     {scanning ? 'Escaneando...' : 'Ativar Câmera (Simulação)'}
+                  </button>
+
+                  <div className="w-full mt-4 pt-4 border-t border-white/10">
+                     <p className="text-xs font-bold text-gray-500 uppercase mb-2 text-center">Ou digite o código</p>
+                     <form onSubmit={handleManualSubmit} className="flex gap-2">
+                        <input 
+                           type="text" 
+                           value={manualCode}
+                           onChange={e => setManualCode(e.target.value)}
+                           placeholder="Ex: TIX-123" 
+                           className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-unikiala-pink uppercase text-sm" 
+                        />
+                        <button type="submit" className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-xl transition-colors">
+                           <Check className="w-5 h-5" />
+                        </button>
+                     </form>
+                  </div>
                </div>
 
-               {lastResult && (
-                  <div className={`w-full p-4 rounded-xl mb-4 text-center animate-in zoom-in duration-300 ${
-                     lastResult.status === 'SUCCESS' ? 'bg-green-500/20 border border-green-500 text-green-400' :
-                     lastResult.status === 'USED' ? 'bg-yellow-500/20 border border-yellow-500 text-yellow-400' :
-                     'bg-red-500/20 border border-red-500 text-red-400'
-                  }`}>
-                     {lastResult.status === 'SUCCESS' && <CheckCircle className="w-8 h-8 mx-auto mb-2" />}
-                     {lastResult.status === 'USED' && <AlertCircle className="w-8 h-8 mx-auto mb-2" />}
-                     {lastResult.status === 'ERROR' && <XCircle className="w-8 h-8 mx-auto mb-2" />}
-                     
-                     <h3 className="font-bold text-lg">{lastResult.message}</h3>
-                     {lastResult.name && <p className="text-sm text-white mt-1">{lastResult.name}</p>}
-                  </div>
-               )}
-
-               <button 
-                  onClick={startCameraSimulation}
-                  disabled={scanning}
-                  className={`w-full py-4 rounded-xl font-bold flex items-center justify-center transition-all ${
-                     scanning ? 'bg-gray-700 cursor-not-allowed text-gray-400' : 'bg-unikiala-pink text-black hover:bg-white hover:shadow-neon'
-                  }`}
-               >
-                  {scanning ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : <Scan className="w-5 h-5 mr-2" />}
-                  {scanning ? 'Escaneando...' : 'Ativar Câmera (Simulação)'}
-               </button>
-
-               <div className="w-full mt-4 pt-4 border-t border-white/10">
-                  <p className="text-xs font-bold text-gray-500 uppercase mb-2 text-center">Ou digite o código</p>
-                  <form onSubmit={handleManualSubmit} className="flex gap-2">
-                     <input 
-                        type="text" 
-                        value={manualCode}
-                        onChange={e => setManualCode(e.target.value)}
-                        placeholder="Ex: TIX-123" 
-                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-unikiala-pink uppercase text-sm" 
-                     />
-                     <button type="submit" className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-xl transition-colors">
-                        <Check className="w-5 h-5" />
+               {/* History Section */}
+               <div className="bg-unikiala-surface border border-white/10 p-6 rounded-3xl h-full flex flex-col">
+                  <div className="flex justify-between items-center mb-6">
+                     <h3 className="font-bold text-white">Atividade Recente</h3>
+                     <button onClick={() => { setRecentScans([]); setLastResult(null); }} className="text-xs text-gray-400 hover:text-white flex items-center">
+                        <RefreshCw className="w-3 h-3 mr-1" /> Limpar
                      </button>
-                  </form>
+                  </div>
+                  
+                  <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-2">
+                     {recentScans.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-50">
+                           <Scan className="w-12 h-12 mb-2" />
+                           <p className="text-sm">Nenhum ingresso validado</p>
+                        </div>
+                     ) : (
+                        recentScans.map((scan, idx) => (
+                           <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 animate-in slide-in-from-right-2">
+                              <div className="flex items-center gap-3">
+                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                    scan.status === 'VALID' ? 'bg-green-500/20 text-green-400' : 
+                                    scan.status === 'USED' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'
+                                 }`}>
+                                    {scan.status === 'VALID' && <Check className="w-5 h-5" />}
+                                    {scan.status === 'USED' && <AlertCircle className="w-5 h-5" />}
+                                    {scan.status === 'INVALID' && <X className="w-5 h-5" />}
+                                 </div>
+                                 <div>
+                                    <p className="text-sm font-bold text-white">{scan.code}</p>
+                                    <p className="text-xs text-gray-400">{scan.name}</p>
+                                 </div>
+                              </div>
+                              <span className="text-xs text-gray-500">{scan.time}</span>
+                           </div>
+                        ))
+                     )}
+                  </div>
                </div>
             </div>
-
-            {/* History Section */}
-            <div className="bg-unikiala-surface border border-white/10 p-6 rounded-3xl h-full flex flex-col">
-               <div className="flex justify-between items-center mb-6">
-                  <h3 className="font-bold text-white">Atividade Recente</h3>
-                  <button onClick={() => { setRecentScans([]); setLastResult(null); }} className="text-xs text-gray-400 hover:text-white flex items-center">
-                     <RefreshCw className="w-3 h-3 mr-1" /> Limpar
-                  </button>
-               </div>
-               
-               <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-2">
-                  {recentScans.length === 0 ? (
-                     <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-50">
-                        <Scan className="w-12 h-12 mb-2" />
-                        <p className="text-sm">Nenhum ingresso validado</p>
+         ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               {/* Generator Form */}
+               <div className="bg-unikiala-surface border border-white/10 p-6 rounded-3xl">
+                  <h3 className="font-bold text-white mb-6">Novo Bilhete</h3>
+                  <div className="space-y-4">
+                     <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nome do Cliente</label>
+                        <input 
+                           type="text" 
+                           value={genName}
+                           onChange={e => setGenName(e.target.value)}
+                           className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-unikiala-pink outline-none" 
+                           placeholder="Ex: Ana Silva"
+                        />
                      </div>
-                  ) : (
-                     recentScans.map((scan, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 animate-in slide-in-from-right-2">
-                           <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                 scan.status === 'VALID' ? 'bg-green-500/20 text-green-400' : 
-                                 scan.status === 'USED' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'
-                              }`}>
-                                 {scan.status === 'VALID' && <Check className="w-5 h-5" />}
-                                 {scan.status === 'USED' && <AlertCircle className="w-5 h-5" />}
-                                 {scan.status === 'INVALID' && <X className="w-5 h-5" />}
+                     <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Evento</label>
+                        <select 
+                           value={genEvent}
+                           onChange={e => setGenEvent(e.target.value)}
+                           className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-unikiala-pink outline-none"
+                        >
+                           <option>Festival de Jazz</option>
+                           <option>Workshop de Arte</option>
+                           <option>Teatro Nacional</option>
+                        </select>
+                     </div>
+                     <div>
+                        <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Tipo de Ingresso</label>
+                        <div className="flex gap-2">
+                           {['Normal', 'VIP', 'Estudante'].map(type => (
+                              <button 
+                                 key={type}
+                                 onClick={() => setGenType(type)}
+                                 className={`flex-1 py-2 rounded-lg text-sm font-bold border transition-colors ${genType === type ? 'bg-unikiala-pink/20 border-unikiala-pink text-unikiala-pink' : 'bg-black/30 border-white/10 text-gray-400'}`}
+                              >
+                                 {type}
+                              </button>
+                           ))}
+                        </div>
+                     </div>
+                     
+                     <button 
+                        onClick={handleGenerate}
+                        className="w-full py-4 bg-unikiala-pink text-black font-bold rounded-xl hover:bg-white transition-colors shadow-neon mt-4 flex items-center justify-center"
+                     >
+                        <QrCode className="w-5 h-5 mr-2" /> Gerar Ticket
+                     </button>
+                  </div>
+               </div>
+
+               {/* Generated Preview */}
+               <div className="bg-unikiala-surface border border-white/10 p-6 rounded-3xl flex items-center justify-center bg-black/20">
+                  {generatedTicket ? (
+                     <div className="bg-white text-black p-6 rounded-2xl w-full max-w-sm relative overflow-hidden animate-in zoom-in duration-300">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-unikiala-pink"></div>
+                        <div className="text-center mb-6">
+                           <h1 className="font-display font-bold text-2xl tracking-tighter">UNIKIALA</h1>
+                           <p className="text-xs text-gray-500 uppercase tracking-widest">Ingresso Oficial</p>
+                        </div>
+                        
+                        <div className="border-t-2 border-b-2 border-dashed border-gray-200 py-6 mb-6">
+                           <p className="font-bold text-lg mb-1">{generatedTicket.event}</p>
+                           <p className="text-sm text-gray-500 mb-4">{new Date().toLocaleDateString()}</p>
+                           
+                           <div className="flex justify-between items-end">
+                              <div className="text-left">
+                                 <p className="text-xs text-gray-400 uppercase">Titular</p>
+                                 <p className="font-bold">{generatedTicket.name}</p>
                               </div>
-                              <div>
-                                 <p className="text-sm font-bold text-white">{scan.code}</p>
-                                 <p className="text-xs text-gray-400">{scan.name}</p>
+                              <div className="text-right">
+                                 <p className="text-xs text-gray-400 uppercase">Categoria</p>
+                                 <span className="bg-black text-white text-xs font-bold px-2 py-1 rounded">{generatedTicket.type}</span>
                               </div>
                            </div>
-                           <span className="text-xs text-gray-500">{scan.time}</span>
                         </div>
-                     ))
+
+                        <div className="flex justify-center mb-4">
+                           <img src={generatedTicket.qrUrl} alt="QR Code" className="w-32 h-32" />
+                        </div>
+                        <p className="text-center font-mono font-bold text-lg tracking-widest text-gray-800">{generatedTicket.code}</p>
+
+                        <button 
+                           onClick={handlePrint}
+                           className="w-full mt-6 py-3 bg-black text-white font-bold rounded-xl flex items-center justify-center hover:bg-gray-800 transition-colors"
+                        >
+                           <Printer className="w-4 h-4 mr-2" /> Imprimir
+                        </button>
+                     </div>
+                  ) : (
+                     <div className="text-center text-gray-500">
+                        <Ticket className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                        <p>Preencha os dados e clique em Gerar para visualizar o ingresso.</p>
+                     </div>
                   )}
                </div>
             </div>
-         </div>
+         )}
       </div>
    );
 };
