@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Event } from '../types';
-import { Calendar, MapPin, Search, ArrowRight, X, Truck, Store, MessageCircle, DollarSign, Map as MapIcon, Filter, Tag, Zap, Smartphone, CheckCircle, Loader2, Heart, Share2 } from 'lucide-react';
+import { Calendar, MapPin, Search, ArrowRight, X, Truck, Store, MessageCircle, DollarSign, Map as MapIcon, Filter, Tag, Zap, Smartphone, CheckCircle, Loader2, Heart, Share2, Download, Printer } from 'lucide-react';
 
 // Declare Leaflet global to avoid TS errors since we import it via CDN
 declare const L: any;
@@ -451,27 +451,59 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCur
     onClose();
   };
 
-  // Se o pagamento Kwik foi sucesso, mostrar tela de confirmação antes de ir pro zap
+  // Se o pagamento Kwik foi sucesso, mostrar o BILHETE DIGITAL AUTOMATICAMENTE
   if (paymentSuccess) {
+    const ticketCode = paymentRef || `TIX-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${ticketCode}&color=FF00FF&bgcolor=000000&margin=1`;
+
      return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose}></div>
-           <div className="relative bg-unikiala-surface border border-green-500/30 rounded-3xl w-full max-w-sm p-8 text-center animate-in zoom-in duration-300 shadow-neon">
-              <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                 <CheckCircle className="w-10 h-10 text-green-500" />
+           <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose}></div>
+           <div className="relative bg-unikiala-surface border border-unikiala-pink/50 rounded-3xl w-full max-w-sm p-0 overflow-hidden shadow-neon animate-in zoom-in duration-300">
+              
+              {/* Ticket Header */}
+              <div className="bg-gradient-to-r from-unikiala-pink to-purple-800 p-6 text-center relative">
+                <div className="absolute top-0 left-0 w-full h-full opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                <h3 className="font-display font-bold text-2xl text-white relative z-10">UNIKIALA</h3>
+                <p className="text-black font-bold text-xs uppercase tracking-widest bg-white/20 inline-block px-3 py-1 rounded mt-2 relative z-10">Bilhete Oficial</p>
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">Pagamento Confirmado!</h3>
-              <p className="text-gray-400 mb-6">Seu pagamento via Kwik foi processado com sucesso.</p>
-              <div className="bg-white/5 p-4 rounded-xl mb-6 border border-white/10">
-                 <p className="text-xs text-gray-500 uppercase">Referência</p>
-                 <p className="text-lg font-mono font-bold text-unikiala-pink">{paymentRef}</p>
+
+              {/* Ticket Body */}
+              <div className="p-6 bg-black text-center relative">
+                 <h4 className="text-xl font-bold text-white mb-1">{event.title}</h4>
+                 <p className="text-gray-400 text-sm mb-6">{new Date(event.date).toLocaleDateString()}</p>
+
+                 <div className="bg-white/5 p-4 rounded-xl border border-white/10 mb-6 inline-block shadow-lg">
+                    <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48 mx-auto rounded-lg" />
+                 </div>
+
+                 <div className="text-center mb-6">
+                    <p className="text-[10px] text-gray-500 uppercase font-bold">Titular</p>
+                    <p className="text-white font-bold text-lg mb-3">{name}</p>
+                    
+                    <p className="text-[10px] text-gray-500 uppercase font-bold">Código de Validação</p>
+                    <p className="text-unikiala-pink font-mono text-xl tracking-widest">{ticketCode}</p>
+                 </div>
+
+                 <div className="space-y-3">
+                    <button 
+                       onClick={() => window.print()}
+                       className="w-full bg-white text-black font-bold py-3 rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center"
+                    >
+                       <Printer className="w-4 h-4 mr-2" /> Imprimir / Salvar PDF
+                    </button>
+                    <button 
+                       onClick={onClose}
+                       className="w-full bg-white/5 text-gray-400 font-bold py-3 rounded-xl hover:bg-white/10 transition-colors"
+                    >
+                       Fechar
+                    </button>
+                 </div>
               </div>
-              <button 
-                 onClick={finishAndOpenWhatsApp}
-                 className="w-full bg-green-500 text-black font-bold py-3 rounded-xl hover:bg-green-400 transition-colors"
-              >
-                 Receber Ingresso no WhatsApp
-              </button>
+              
+              {/* Decorative Perforation Circles */}
+              <div className="absolute top-[88px] -left-3 w-6 h-6 bg-unikiala-surface rounded-full"></div>
+              <div className="absolute top-[88px] -right-3 w-6 h-6 bg-unikiala-surface rounded-full"></div>
            </div>
         </div>
      );
