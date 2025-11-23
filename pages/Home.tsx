@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Event } from '../types';
-import { Calendar, MapPin, Search, ArrowRight, X, Truck, Store, MessageCircle, DollarSign, Map as MapIcon, Filter, Tag } from 'lucide-react';
+import { Calendar, MapPin, Search, ArrowRight, X, Truck, Store, MessageCircle, DollarSign, Map as MapIcon, Filter, Tag, Zap, Smartphone, CheckCircle, Loader2 } from 'lucide-react';
 
 // Declare Leaflet global to avoid TS errors since we import it via CDN
 declare const L: any;
@@ -329,6 +329,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCur
   const [quantity, setQuantity] = useState(1);
   const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
   const [deliveryZone, setDeliveryZone] = useState<'inside' | 'outside'>('inside');
+  
+  // Payment State
+  const [paymentMethod, setPaymentMethod] = useState<'WHATSAPP' | 'KWIK'>('WHATSAPP');
+  const [kwikPhone, setKwikPhone] = useState('');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentRef, setPaymentRef] = useState('');
 
   // Taxas
   const TAX_INSIDE = 2000;
@@ -341,15 +348,42 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCur
 
   const total = (event.price * quantity) + getDeliveryFee();
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!name) {
       alert("Por favor, insira seu nome.");
       return;
     }
 
-    const deliveryText = deliveryMethod === 'pickup' 
+    if (paymentMethod === 'KWIK') {
+       if (!kwikPhone) {
+          alert("Por favor, insira o número de telefone associado ao Kwik.");
+          return;
+       }
+
+       setIsProcessingPayment(true);
+       
+       // Simulação de Chamada API Kwik
+       // Num cenário real, aqui chamaríamos o endpoint /payments/request da Kwik
+       setTimeout(() => {
+          setIsProcessingPayment(false);
+          setPaymentSuccess(true);
+          setPaymentRef(`KWIK-${Math.floor(Math.random() * 1000000)}`);
+       }, 3000); // 3 segundos de simulação
+       return;
+    }
+
+    // Fluxo Padrão (WhatsApp/Manual)
+    finishAndOpenWhatsApp();
+  };
+
+  const finishAndOpenWhatsApp = () => {
+     const deliveryText = deliveryMethod === 'pickup' 
       ? 'Levantamento Presencial (Sem taxa)' 
       : `Delivery (${deliveryZone === 'inside' ? 'Mesma Província' : 'Outra Província'})`;
+
+    const paymentStatus = paymentSuccess 
+      ? `✅ *PAGO VIA KWIK* (Ref: ${paymentRef})`
+      : `⏳ *Pagamento Pendente* (A tratar no atendimento)`;
 
     const message = `*NOVO PEDIDO - UNIKIALA*\n\n` +
       `🎟 *Evento:* ${event.title}\n` +
@@ -360,19 +394,46 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCur
       `👤 *Cliente:* ${name}\n` +
       `🔢 *Qtd:* ${quantity}\n` +
       `🚚 *Entrega:* ${deliveryText}\n` +
-      `💰 *Total:* ${formatCurrency(total)}\n\n` +
-      `Gostaria de finalizar o pagamento.`;
+      `💰 *Total:* ${formatCurrency(total)}\n` +
+      `💳 *Status:* ${paymentStatus}\n\n` +
+      (paymentSuccess ? `O pagamento já foi confirmado. Aguardo o envio dos ingressos.` : `Gostaria de finalizar o pagamento.`);
 
     const whatsappUrl = `https://wa.me/${event.organizerWhatsapp}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
     onClose();
   };
 
+  // Se o pagamento Kwik foi sucesso, mostrar tela de confirmação antes de ir pro zap
+  if (paymentSuccess) {
+     return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose}></div>
+           <div className="relative bg-unikiala-surface border border-green-500/30 rounded-3xl w-full max-w-sm p-8 text-center animate-in zoom-in duration-300 shadow-neon">
+              <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                 <CheckCircle className="w-10 h-10 text-green-500" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">Pagamento Confirmado!</h3>
+              <p className="text-gray-400 mb-6">Seu pagamento via Kwik foi processado com sucesso.</p>
+              <div className="bg-white/5 p-4 rounded-xl mb-6 border border-white/10">
+                 <p className="text-xs text-gray-500 uppercase">Referência</p>
+                 <p className="text-lg font-mono font-bold text-unikiala-pink">{paymentRef}</p>
+              </div>
+              <button 
+                 onClick={finishAndOpenWhatsApp}
+                 className="w-full bg-green-500 text-black font-bold py-3 rounded-xl hover:bg-green-400 transition-colors"
+              >
+                 Receber Ingresso no WhatsApp
+              </button>
+           </div>
+        </div>
+     );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose}></div>
       
-      {/* Responsive Modal Container: Full width bottom sheet on mobile, centered modal on desktop */}
+      {/* Responsive Modal Container */}
       <div className="relative bg-unikiala-surface border-t md:border border-white/10 rounded-t-3xl md:rounded-3xl w-full max-w-md shadow-neon overflow-hidden animate-in slide-in-from-bottom-10 md:zoom-in duration-300 flex flex-col max-h-[90vh]">
         
         <div className="bg-gradient-to-r from-unikiala-pink/20 to-purple-900/20 p-4 md:p-6 border-b border-white/10 flex justify-between items-start shrink-0">
@@ -386,7 +447,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCur
         </div>
 
         <div className="p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto custom-scrollbar">
-          {/* Resumo do Evento (Dados Obrigatórios) */}
+          {/* Resumo do Evento */}
           <div className="bg-white/5 rounded-xl p-4 border border-white/5 space-y-2">
             <h4 className="text-xs font-bold text-unikiala-pink uppercase mb-2">Detalhes do Evento</h4>
             <div className="flex items-center text-sm text-gray-300">
@@ -397,12 +458,6 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCur
               <MapPin className="w-4 h-4 mr-2 text-gray-500" />
               <span>{event.location}</span>
             </div>
-            {event.category && (
-               <div className="flex items-center text-sm text-gray-300">
-                  <Tag className="w-4 h-4 mr-2 text-gray-500" />
-                  <span>{event.category}</span>
-               </div>
-            )}
              <div className="flex items-center text-sm text-gray-300">
               <DollarSign className="w-4 h-4 mr-2 text-gray-500" />
               <span>{formatCurrency(event.price)} / pessoa</span>
@@ -483,6 +538,41 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCur
             )}
           </div>
 
+          {/* Pagamento com Kwik */}
+          <div>
+             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Forma de Pagamento</label>
+             <div className="space-y-3">
+                <label className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'WHATSAPP' ? 'bg-white/10 border-unikiala-pink text-white' : 'bg-black/30 border-gray-800 text-gray-500'}`}>
+                   <input type="radio" name="payment" checked={paymentMethod === 'WHATSAPP'} onChange={() => setPaymentMethod('WHATSAPP')} className="mr-3 accent-unikiala-pink" />
+                   <MessageCircle className="w-5 h-5 mr-3 text-green-500" />
+                   <span className="font-bold text-sm">Pagar no WhatsApp / Local</span>
+                </label>
+
+                <label className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'KWIK' ? 'bg-blue-500/10 border-blue-500 text-white' : 'bg-black/30 border-gray-800 text-gray-500'}`}>
+                   <input type="radio" name="payment" checked={paymentMethod === 'KWIK'} onChange={() => setPaymentMethod('KWIK')} className="mr-3 accent-blue-500" />
+                   <Zap className="w-5 h-5 mr-3 text-blue-400" />
+                   <span className="font-bold text-sm">Kwik Instant Payment</span>
+                   <span className="ml-auto text-xs bg-blue-500 text-black px-2 py-0.5 rounded font-bold">Rápido</span>
+                </label>
+
+                {paymentMethod === 'KWIK' && (
+                   <div className="pl-4 animate-in slide-in-from-top-2">
+                      <p className="text-xs text-blue-300 mb-2">Insira seu nº Kwik para autorizar o pagamento:</p>
+                      <div className="flex items-center bg-black/50 border border-blue-500/50 rounded-xl px-3 py-2">
+                         <Smartphone className="w-4 h-4 text-blue-400 mr-2" />
+                         <input 
+                           type="tel" 
+                           placeholder="923 xxx xxx" 
+                           value={kwikPhone}
+                           onChange={e => setKwikPhone(e.target.value)}
+                           className="bg-transparent border-none outline-none text-white w-full placeholder-gray-600"
+                        />
+                      </div>
+                   </div>
+                )}
+             </div>
+          </div>
+
           {/* Resumo */}
           <div className="border-t border-white/10 pt-4 space-y-2">
             <div className="flex justify-between text-sm text-gray-400">
@@ -503,10 +593,24 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCur
 
           <button 
             onClick={handleCheckout}
-            className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-black font-bold py-4 rounded-xl flex items-center justify-center transition-all shadow-lg hover:shadow-green-900/50"
+            disabled={isProcessingPayment}
+            className={`w-full font-bold py-4 rounded-xl flex items-center justify-center transition-all shadow-lg ${
+               paymentMethod === 'KWIK' 
+                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/50' 
+                  : 'bg-[#25D366] hover:bg-[#20bd5a] text-black shadow-green-900/50'
+            } ${isProcessingPayment ? 'opacity-80 cursor-wait' : ''}`}
           >
-            <MessageCircle className="w-5 h-5 mr-2" />
-            Confirmar no WhatsApp
+            {isProcessingPayment ? (
+               <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Aguardando aprovação Kwik...
+               </>
+            ) : (
+               <>
+                  {paymentMethod === 'KWIK' ? <Zap className="w-5 h-5 mr-2" /> : <MessageCircle className="w-5 h-5 mr-2" />}
+                  {paymentMethod === 'KWIK' ? 'Pagar com Kwik' : 'Confirmar Pedido'}
+               </>
+            )}
           </button>
         </div>
       </div>
