@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Event } from '../types';
-import { Calendar, MapPin, Search, ArrowRight, X, Truck, Store, MessageCircle, DollarSign, Map as MapIcon, Filter, Tag, Zap, Smartphone, CheckCircle, Loader2 } from 'lucide-react';
+import { Calendar, MapPin, Search, ArrowRight, X, Truck, Store, MessageCircle, DollarSign, Map as MapIcon, Filter, Tag, Zap, Smartphone, CheckCircle, Loader2, Heart, Share2 } from 'lucide-react';
 
 // Declare Leaflet global to avoid TS errors since we import it via CDN
 declare const L: any;
@@ -17,6 +17,16 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
+  
+  // Favorites State
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('unikiala_favorites');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
   
   const eventsSectionRef = useRef<HTMLDivElement>(null);
 
@@ -41,6 +51,38 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
   const clearSearch = () => {
     setSearchTerm('');
     setSelectedCategory('Todos');
+  };
+
+  const toggleFavorite = (eventId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavorites(prev => {
+      const newFavs = prev.includes(eventId) 
+        ? prev.filter(id => id !== eventId)
+        : [...prev, eventId];
+      localStorage.setItem('unikiala_favorites', JSON.stringify(newFavs));
+      return newFavs;
+    });
+  };
+
+  const handleShare = async (event: Event, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shareData = {
+      title: event.title,
+      text: `Confira este evento incrível no UNIKIALA: ${event.title} em ${event.location}.`,
+      url: window.location.href // Em produção, seria a URL específica do evento
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.log('Error sharing', err);
+      }
+    } else {
+      // Fallback para WhatsApp Web
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareData.text + ' ' + shareData.url)}`;
+      window.open(whatsappUrl, '_blank');
+    }
   };
 
   // Lógica de Filtro de Busca Robusta
@@ -209,6 +251,9 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
                   formatCurrency={formatCurrency} 
                   featured 
                   onBuy={() => handleBuyClick(event)}
+                  isFavorite={favorites.includes(event.id)}
+                  onToggleFavorite={(e) => toggleFavorite(event.id, e)}
+                  onShare={(e) => handleShare(event, e)}
                 />
               ))}
             </div>
@@ -229,6 +274,9 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
                   event={event} 
                   formatCurrency={formatCurrency}
                   onBuy={() => handleBuyClick(event)}
+                  isFavorite={favorites.includes(event.id)}
+                  onToggleFavorite={(e) => toggleFavorite(event.id, e)}
+                  onShare={(e) => handleShare(event, e)}
                 />
               ))}
             </div>
@@ -618,7 +666,19 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCur
   );
 };
 
-const EventCard: React.FC<{ event: Event; formatCurrency: (v: number) => string; featured?: boolean; onBuy: () => void }> = ({ event, formatCurrency, featured, onBuy }) => (
+interface EventCardProps { 
+  event: Event; 
+  formatCurrency: (v: number) => string; 
+  featured?: boolean; 
+  onBuy: () => void;
+  isFavorite: boolean;
+  onToggleFavorite: (e: React.MouseEvent) => void;
+  onShare: (e: React.MouseEvent) => void;
+}
+
+const EventCard: React.FC<EventCardProps> = ({ 
+  event, formatCurrency, featured, onBuy, isFavorite, onToggleFavorite, onShare 
+}) => (
   <div className={`
     group relative bg-unikiala-surface rounded-2xl overflow-hidden flex flex-col
     ${featured ? 'border border-unikiala-pink/30 hover:border-unikiala-pink' : 'border border-white/5 hover:border-white/20'} 
@@ -629,8 +689,27 @@ const EventCard: React.FC<{ event: Event; formatCurrency: (v: number) => string;
       <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60 z-10"></div>
       <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
       
+      {/* Price Badge */}
       <div className="absolute top-4 right-4 z-20 bg-black/60 backdrop-blur-md border border-white/10 text-white font-bold px-3 py-1 rounded-lg text-xs md:text-sm">
         {formatCurrency(event.price)}
+      </div>
+
+      {/* Action Buttons Overlay */}
+      <div className="absolute top-4 left-4 z-20 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <button 
+          onClick={onToggleFavorite}
+          className="p-2 bg-black/60 hover:bg-unikiala-pink/80 hover:text-white backdrop-blur-md rounded-full border border-white/10 transition-colors"
+          title="Salvar nos Favoritos"
+        >
+          <Heart className={`w-5 h-5 ${isFavorite ? 'fill-unikiala-pink text-unikiala-pink' : 'text-white'}`} />
+        </button>
+        <button 
+          onClick={onShare}
+          className="p-2 bg-black/60 hover:bg-blue-500/80 hover:text-white backdrop-blur-md rounded-full border border-white/10 transition-colors"
+          title="Compartilhar"
+        >
+          <Share2 className="w-5 h-5 text-white" />
+        </button>
       </div>
       
       <div className="absolute bottom-4 left-4 z-20 flex gap-2">

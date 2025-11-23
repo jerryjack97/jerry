@@ -149,7 +149,7 @@ const GlobalDashboard: React.FC<{ events: Event[], organizers: OrganizerProfile[
                            <div className="w-10 h-10 bg-gray-700 rounded-full"></div>
                            <div>
                               <p className="text-white font-bold">Nova Produtora {i}</p>
-                              <p className="text-xs text-gray-400">CNPJ/NIF Enviado</p>
+                              <p className="text-xs text-gray-400">NIF Enviado</p>
                            </div>
                         </div>
                         <div className="flex gap-2">

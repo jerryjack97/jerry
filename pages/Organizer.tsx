@@ -201,7 +201,7 @@ const VerificationCenter: React.FC<{ docs: VerificationDocument[], status: strin
        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="border-2 border-dashed border-gray-700 hover:border-unikiala-pink rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-colors bg-black/20">
              <FileText className="w-10 h-10 text-gray-500 mb-4" />
-             <p className="text-white font-bold">Contrato Social / NIF</p>
+             <p className="text-white font-bold">NIF da Empresa</p>
              <p className="text-xs text-gray-500 mt-1">PDF ou JPG (Max 5MB)</p>
           </div>
           <div className="border-2 border-dashed border-gray-700 hover:border-unikiala-pink rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-colors bg-black/20">
@@ -367,7 +367,8 @@ const CheckInTool: React.FC = () => {
       if (!genName) return alert("Insira o nome do cliente");
       
       const code = `TIX-${Math.floor(Math.random() * 1000000)}`;
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${code}&color=FF00FF&bgcolor=000000`;
+      // Requesting Pink QR on Black BG from API
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${code}&color=FF00FF&bgcolor=000000&margin=0`;
       
       // SAVE TO DB (State)
       setTicketsDb(prev => ({
@@ -388,35 +389,186 @@ const CheckInTool: React.FC = () => {
 
    const handlePrint = () => {
       if (!generatedTicket) return;
-      const printWindow = window.open('', '', 'width=400,height=600');
+      const printWindow = window.open('', '', 'width=420,height=700');
       if (printWindow) {
          printWindow.document.write(`
             <html>
                <head>
-                  <title>Ticket - ${generatedTicket.name}</title>
+                  <title>UNIKIALA Ticket - ${generatedTicket.name}</title>
+                  <link rel="preconnect" href="https://fonts.googleapis.com">
+                  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
                   <style>
-                     body { font-family: sans-serif; text-align: center; background: #fff; padding: 20px; }
-                     .ticket { border: 2px dashed #000; padding: 20px; border-radius: 10px; }
-                     h1 { color: #000; margin-bottom: 5px; }
-                     .meta { font-size: 14px; color: #555; margin-bottom: 20px; }
-                     img { margin: 20px 0; }
-                     .code { font-family: monospace; font-size: 18px; font-weight: bold; letter-spacing: 2px; }
-                     .footer { margin-top: 20px; font-size: 10px; color: #888; }
+                     @page { margin: 0; }
+                     body { 
+                        margin: 0; 
+                        padding: 20px; 
+                        background-color: #f5f5f5; 
+                        display: flex; 
+                        justify-content: center; 
+                        align-items: center; 
+                        min-height: 100vh;
+                        font-family: 'Outfit', sans-serif;
+                     }
+                     .ticket-container {
+                        width: 340px;
+                        background-color: #050505;
+                        color: white;
+                        border-radius: 24px;
+                        overflow: hidden;
+                        position: relative;
+                        box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+                        -webkit-print-color-adjust: exact; 
+                        print-color-adjust: exact;
+                        border: 1px solid #333;
+                     }
+                     .header {
+                        background: linear-gradient(135deg, #FF00FF 0%, #B300B3 100%);
+                        padding: 20px;
+                        text-align: center;
+                        position: relative;
+                        overflow: hidden;
+                     }
+                     .header::after {
+                        content: '';
+                        position: absolute;
+                        bottom: -10px;
+                        left: 0;
+                        width: 100%;
+                        height: 20px;
+                        background: #050505;
+                        border-radius: 50% 50% 0 0;
+                     }
+                     h1 { 
+                        font-family: 'Syne', sans-serif; 
+                        font-weight: 800; 
+                        margin: 0; 
+                        font-size: 28px;
+                        letter-spacing: -1px;
+                        color: #000;
+                     }
+                     .subtitle {
+                        text-transform: uppercase;
+                        font-size: 10px;
+                        font-weight: 800;
+                        letter-spacing: 2px;
+                        color: rgba(0,0,0,0.6);
+                        margin-top: 2px;
+                     }
+                     .content {
+                        padding: 30px;
+                        text-align: center;
+                     }
+                     .event-title {
+                        font-family: 'Syne', sans-serif;
+                        font-size: 22px;
+                        font-weight: 700;
+                        margin-bottom: 5px;
+                        line-height: 1.2;
+                     }
+                     .event-meta {
+                        font-size: 12px;
+                        color: #888;
+                        margin-bottom: 25px;
+                        border-bottom: 1px dashed #333;
+                        padding-bottom: 15px;
+                     }
+                     .details-grid {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-bottom: 25px;
+                        text-align: left;
+                     }
+                     .label {
+                        font-size: 10px;
+                        text-transform: uppercase;
+                        color: #666;
+                        font-weight: 700;
+                        margin-bottom: 2px;
+                     }
+                     .value {
+                        font-size: 14px;
+                        font-weight: 600;
+                     }
+                     .ticket-type {
+                        background-color: #222;
+                        border: 1px solid #FF00FF;
+                        color: #FF00FF;
+                        padding: 2px 8px;
+                        border-radius: 4px;
+                        font-size: 10px;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        display: inline-block;
+                     }
+                     .qr-section {
+                        background-color: #000;
+                        padding: 10px;
+                        border-radius: 12px;
+                        display: inline-block;
+                        border: 1px solid #333;
+                        margin-bottom: 15px;
+                        box-shadow: 0 0 20px rgba(255, 0, 255, 0.15);
+                     }
+                     .code {
+                        font-family: monospace;
+                        font-size: 18px;
+                        font-weight: 700;
+                        letter-spacing: 2px;
+                        color: #FF00FF;
+                        margin: 0;
+                     }
+                     .footer {
+                        font-size: 9px;
+                        color: #444;
+                        margin-top: 20px;
+                        text-transform: uppercase;
+                     }
+                     @media print {
+                        body { background: none; padding: 0; }
+                        .ticket-container { box-shadow: none; }
+                     }
                   </style>
                </head>
                <body>
-                  <div class="ticket">
-                     <h1>UNIKIALA</h1>
-                     <p>${generatedTicket.event}</p>
-                     <div class="meta">
-                        <strong>${generatedTicket.name}</strong><br>
-                        ${generatedTicket.type}
+                  <div class="ticket-container">
+                     <div class="header">
+                        <h1>UNIKIALA</h1>
+                        <div class="subtitle">Official Ticket</div>
                      </div>
-                     <img src="${generatedTicket.qrUrl.replace('color=FF00FF&bgcolor=000000', '')}" width="150" />
-                     <p class="code">${generatedTicket.code}</p>
-                     <div class="footer">Gerado em ${new Date().toLocaleString()}</div>
+                     <div class="content">
+                        <div class="event-title">${generatedTicket.event}</div>
+                        <div class="event-meta">
+                           ${new Date().toLocaleDateString('pt-AO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </div>
+                        
+                        <div class="details-grid">
+                           <div>
+                              <div class="label">Titular</div>
+                              <div class="value">${generatedTicket.name}</div>
+                           </div>
+                           <div style="text-align: right;">
+                              <div class="label">Categoria</div>
+                              <div class="ticket-type">${generatedTicket.type}</div>
+                           </div>
+                        </div>
+
+                        <div class="qr-section">
+                           <img src="${generatedTicket.qrUrl}" width="180" height="180" alt="QR Code" style="display: block;" />
+                        </div>
+                        
+                        <div class="label">Código de Validação</div>
+                        <p class="code">${generatedTicket.code}</p>
+                        
+                        <div class="footer">Apresente este código na entrada</div>
+                     </div>
                   </div>
-                  <script>window.print();</script>
+                  <script>
+                     // Wait slightly for fonts and images to render
+                     setTimeout(() => {
+                        window.print();
+                     }, 800);
+                  </script>
                </body>
             </html>
          `);
@@ -605,37 +757,37 @@ const CheckInTool: React.FC = () => {
                {/* Generated Preview */}
                <div className="bg-unikiala-surface border border-white/10 p-6 rounded-3xl flex items-center justify-center bg-black/20">
                   {generatedTicket ? (
-                     <div className="bg-white text-black p-6 rounded-2xl w-full max-w-sm relative overflow-hidden animate-in zoom-in duration-300">
-                        <div className="absolute top-0 left-0 w-full h-2 bg-unikiala-pink"></div>
-                        <div className="text-center mb-6">
-                           <h1 className="font-display font-bold text-2xl tracking-tighter">UNIKIALA</h1>
-                           <p className="text-xs text-gray-500 uppercase tracking-widest">Ingresso Oficial</p>
+                     <div className="bg-black border border-white/10 p-6 rounded-2xl w-full max-w-sm relative overflow-hidden animate-in zoom-in duration-300 shadow-neon">
+                        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-unikiala-pink to-purple-600"></div>
+                        <div className="text-center mb-6 pt-2">
+                           <h1 className="font-display font-bold text-2xl tracking-tighter text-white">UNIKIALA</h1>
+                           <p className="text-xs text-gray-500 uppercase tracking-widest font-bold">Ticket Oficial</p>
                         </div>
                         
-                        <div className="border-t-2 border-b-2 border-dashed border-gray-200 py-6 mb-6">
-                           <p className="font-bold text-lg mb-1">{generatedTicket.event}</p>
-                           <p className="text-sm text-gray-500 mb-4">{new Date().toLocaleDateString()}</p>
+                        <div className="border-t border-b border-dashed border-gray-700 py-6 mb-6">
+                           <p className="font-bold text-lg mb-1 text-white">{generatedTicket.event}</p>
+                           <p className="text-sm text-gray-400 mb-4">{new Date().toLocaleDateString()}</p>
                            
                            <div className="flex justify-between items-end">
                               <div className="text-left">
-                                 <p className="text-xs text-gray-400 uppercase">Titular</p>
-                                 <p className="font-bold">{generatedTicket.name}</p>
+                                 <p className="text-[10px] text-gray-500 uppercase font-bold">Titular</p>
+                                 <p className="font-bold text-white">{generatedTicket.name}</p>
                               </div>
                               <div className="text-right">
-                                 <p className="text-xs text-gray-400 uppercase">Categoria</p>
-                                 <span className="bg-black text-white text-xs font-bold px-2 py-1 rounded">{generatedTicket.type}</span>
+                                 <p className="text-[10px] text-gray-500 uppercase font-bold">Categoria</p>
+                                 <span className="bg-unikiala-pink/20 text-unikiala-pink border border-unikiala-pink text-xs font-bold px-2 py-1 rounded">{generatedTicket.type}</span>
                               </div>
                            </div>
                         </div>
 
-                        <div className="flex justify-center mb-4">
+                        <div className="flex justify-center mb-4 bg-black p-2 rounded-xl border border-white/10">
                            <img src={generatedTicket.qrUrl} alt="QR Code" className="w-32 h-32" />
                         </div>
-                        <p className="text-center font-mono font-bold text-lg tracking-widest text-gray-800">{generatedTicket.code}</p>
+                        <p className="text-center font-mono font-bold text-lg tracking-widest text-unikiala-pink">{generatedTicket.code}</p>
 
                         <button 
                            onClick={handlePrint}
-                           className="w-full mt-6 py-3 bg-black text-white font-bold rounded-xl flex items-center justify-center hover:bg-gray-800 transition-colors"
+                           className="w-full mt-6 py-3 bg-white text-black font-bold rounded-xl flex items-center justify-center hover:bg-gray-200 transition-colors"
                         >
                            <Printer className="w-4 h-4 mr-2" /> Imprimir
                         </button>
