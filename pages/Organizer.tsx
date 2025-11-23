@@ -303,17 +303,18 @@ const CheckInTool: React.FC = () => {
    const [genType, setGenType] = useState('Normal');
    const [generatedTicket, setGeneratedTicket] = useState<{ name: string, event: string, type: string, code: string, qrUrl: string } | null>(null);
 
-   // Mock Tickets Database
-   const MOCK_TICKETS: Record<string, { name: string, event: string, used: boolean }> = {
+   // Mock Tickets Database (CONVERTED TO STATE TO ALLOW DYNAMIC UPDATES)
+   const [ticketsDb, setTicketsDb] = useState<Record<string, { name: string, event: string, used: boolean }>>({
       'TIX-123': { name: 'João Silva', event: 'Festival de Jazz', used: false },
       'TIX-456': { name: 'Maria Costa', event: 'Festival de Jazz', used: true }, // Already used
       'TIX-789': { name: 'Pedro Paulo', event: 'Workshop Arte', used: false },
-   };
+   });
 
    // --- SCANNER LOGIC ---
    const handleScan = useCallback((code: string) => {
       setScanning(false);
-      const ticket = MOCK_TICKETS[code];
+      // Read from current state
+      const ticket = ticketsDb[code];
 
       const now = new Date().toLocaleTimeString();
 
@@ -329,18 +330,28 @@ const CheckInTool: React.FC = () => {
          return;
       }
 
-      // Valid Ticket
-      ticket.used = true; // Mark as used locally
+      // Valid Ticket - Update State to mark as used
+      setTicketsDb(prev => ({
+         ...prev,
+         [code]: { ...prev[code], used: true }
+      }));
+      
       setLastResult({ status: 'SUCCESS', message: 'Acesso Liberado', name: ticket.name });
       setRecentScans(prev => [{ code, name: ticket.name, time: now, status: 'VALID' }, ...prev].slice(0, 5));
-   }, []);
+   }, [ticketsDb]);
 
    const startCameraSimulation = () => {
       setScanning(true);
       setLastResult(null);
       setTimeout(() => {
          const scenarios = ['TIX-123', 'TIX-456', 'INVALID-CODE'];
-         const randomCode = scenarios[Math.floor(Math.random() * scenarios.length)];
+         // Add generated codes to scenarios if available
+         const keys = Object.keys(ticketsDb);
+         const randomKey = keys[Math.floor(Math.random() * keys.length)];
+         
+         // 70% chance to pick a real existing key, 30% chance for random/invalid
+         const randomCode = Math.random() > 0.3 ? randomKey : scenarios[Math.floor(Math.random() * scenarios.length)];
+         
          handleScan(randomCode);
       }, 2000);
    };
@@ -358,6 +369,12 @@ const CheckInTool: React.FC = () => {
       const code = `TIX-${Math.floor(Math.random() * 1000000)}`;
       const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${code}&color=FF00FF&bgcolor=000000`;
       
+      // SAVE TO DB (State)
+      setTicketsDb(prev => ({
+         ...prev,
+         [code]: { name: genName, event: genEvent, used: false }
+      }));
+
       setGeneratedTicket({
          name: genName,
          event: genEvent,
@@ -365,6 +382,8 @@ const CheckInTool: React.FC = () => {
          code,
          qrUrl
       });
+      
+      alert(`Ticket gerado e salvo no sistema com sucesso!\nCódigo: ${code}\nAgora pode ser validado na aba Scanner.`);
    };
 
    const handlePrint = () => {
