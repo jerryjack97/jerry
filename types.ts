@@ -25,6 +25,7 @@ export interface Event {
   id: string;
   title: string;
   description: string;
+  category?: string; // Novo campo
   date: string;
   location: string;
   price: number;

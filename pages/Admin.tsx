@@ -4,7 +4,7 @@ import { Event, OrganizerProfile } from '../types';
 import { 
   LayoutDashboard, Users, ShieldAlert, DollarSign, FileText, 
   Ban, CheckCircle, XCircle, Search, MoreVertical, AlertTriangle, 
-  Database, Wifi, WifiOff, Trash2, CreditCard
+  Database, Wifi, WifiOff, Trash2, CreditCard, ListTodo, Server, Lock
 } from 'lucide-react';
 import { checkConnection, isSupabaseConfigured } from '../services/supabaseClient';
 
@@ -34,11 +34,11 @@ export const Admin: React.FC<AdminProps> = ({ events, organizers, onDeleteEvent 
 
   const renderContent = () => {
      switch (activeSection) {
-        case 'DASHBOARD': return <GlobalDashboard events={events} organizers={organizers} />;
+        case 'DASHBOARD': return <GlobalDashboard events={events} organizers={organizers} dbStatus={dbStatus} />;
         case 'ORGANIZERS': return <OrganizerManagement organizers={organizers} />;
         case 'EVENTS': return <EventModeration events={events} onDeleteEvent={onDeleteEvent} />;
         case 'FINANCE': return <GlobalFinance />;
-        default: return <GlobalDashboard events={events} organizers={organizers} />;
+        default: return <GlobalDashboard events={events} organizers={organizers} dbStatus={dbStatus} />;
      }
   };
 
@@ -88,7 +88,7 @@ const AdminNavButton: React.FC<{ active: boolean; onClick: () => void; icon: Rea
    </button>
  );
 
-const GlobalDashboard: React.FC<{ events: Event[], organizers: OrganizerProfile[] }> = ({ events, organizers }) => (
+const GlobalDashboard: React.FC<{ events: Event[], organizers: OrganizerProfile[], dbStatus: string }> = ({ events, organizers, dbStatus }) => (
    <div className="space-y-8 animate-in fade-in duration-500">
       <h2 className="text-3xl font-bold text-white">Visão Geral da Plataforma</h2>
       
@@ -100,37 +100,90 @@ const GlobalDashboard: React.FC<{ events: Event[], organizers: OrganizerProfile[
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-         <div className="bg-unikiala-surface border border-white/5 rounded-2xl p-6">
-            <h3 className="text-white font-bold mb-6">Organizadores Pendentes de Aprovação</h3>
+         
+         {/* Roadmap Widget - LISTA DO QUE FALTA */}
+         <div className="bg-unikiala-surface border border-white/5 rounded-2xl p-6 relative overflow-hidden">
+            <div className="flex items-center gap-3 mb-6">
+               <div className="p-2 bg-unikiala-pink/20 rounded-lg">
+                  <ListTodo className="w-5 h-5 text-unikiala-pink" />
+               </div>
+               <h3 className="text-white font-bold">Roadmap do Sistema (O que falta?)</h3>
+            </div>
+
             <div className="space-y-4">
-               {/* Mock Pending Organizers */}
-               {[1, 2].map(i => (
-                  <div key={i} className="flex items-center justify-between bg-black/20 p-4 rounded-xl">
-                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-700 rounded-full"></div>
-                        <div>
-                           <p className="text-white font-bold">Nova Produtora {i}</p>
-                           <p className="text-xs text-gray-400">CNPJ/NIF Enviado</p>
-                        </div>
-                     </div>
-                     <div className="flex gap-2">
-                        <button className="p-2 bg-green-500/20 text-green-400 rounded hover:bg-green-500/30"><CheckCircle className="w-4 h-4" /></button>
-                        <button className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30"><XCircle className="w-4 h-4" /></button>
-                     </div>
-                  </div>
-               ))}
+               <RoadmapItem 
+                  status="pending" 
+                  title="Gateway de Pagamento Real" 
+                  desc="Integração com ProxyPay ou Multicaixa Express para substituir WhatsApp."
+               />
+               <RoadmapItem 
+                  status={dbStatus === 'connected' ? 'done' : 'warning'} 
+                  title="Banco de Dados Real" 
+                  desc={dbStatus === 'connected' ? "Supabase Conectado" : "Usando Modo Local. Necessário conectar Supabase."}
+               />
+               <RoadmapItem 
+                  status="pending" 
+                  title="Storage de Arquivos (Imagens)" 
+                  desc="Configurar Buckets para salvar fotos reais em vez de Base64 (lento)."
+               />
+               <RoadmapItem 
+                  status="pending" 
+                  title="Validação de Ingressos (QR)" 
+                  desc="Gerar Hash única para cada ingresso e validar via câmera."
+               />
+               <RoadmapItem 
+                  status="pending" 
+                  title="Emails Transacionais" 
+                  desc="Configurar SMTP (Resend/SendGrid) para emails de compra."
+               />
             </div>
          </div>
 
-         <div className="bg-unikiala-surface border border-white/5 rounded-2xl p-6">
-            <h3 className="text-white font-bold mb-6">Atividades Recentes do Sistema</h3>
-            <div className="space-y-4 text-sm">
-               <LogItem action="Novo Cadastro" detail="Usuário João Silva" time="2 min atrás" />
-               <LogItem action="Venda Confirmada" detail="3x Ingressos - Jazz Fest" time="5 min atrás" />
-               <LogItem action="Alerta de Risco" detail="Tentativa de login suspeita (IP Russo)" time="10 min atrás" type="alert" />
+         <div className="space-y-8">
+            <div className="bg-unikiala-surface border border-white/5 rounded-2xl p-6">
+               <h3 className="text-white font-bold mb-6">Organizadores Pendentes</h3>
+               <div className="space-y-4">
+                  {[1, 2].map(i => (
+                     <div key={i} className="flex items-center justify-between bg-black/20 p-4 rounded-xl">
+                        <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 bg-gray-700 rounded-full"></div>
+                           <div>
+                              <p className="text-white font-bold">Nova Produtora {i}</p>
+                              <p className="text-xs text-gray-400">CNPJ/NIF Enviado</p>
+                           </div>
+                        </div>
+                        <div className="flex gap-2">
+                           <button className="p-2 bg-green-500/20 text-green-400 rounded hover:bg-green-500/30"><CheckCircle className="w-4 h-4" /></button>
+                           <button className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30"><XCircle className="w-4 h-4" /></button>
+                        </div>
+                     </div>
+                  ))}
+               </div>
+            </div>
+
+            <div className="bg-unikiala-surface border border-white/5 rounded-2xl p-6">
+               <h3 className="text-white font-bold mb-6">Log de Atividades</h3>
+               <div className="space-y-4 text-sm">
+                  <LogItem action="Novo Cadastro" detail="Usuário João Silva" time="2 min atrás" />
+                  <LogItem action="Venda Confirmada" detail="3x Ingressos - Jazz Fest" time="5 min atrás" />
+               </div>
             </div>
          </div>
       </div>
+   </div>
+);
+
+const RoadmapItem: React.FC<{ status: 'done' | 'pending' | 'warning', title: string, desc: string }> = ({ status, title, desc }) => (
+   <div className="flex gap-4 items-start p-3 rounded-xl hover:bg-white/5 transition-colors">
+      <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${
+         status === 'done' ? 'bg-green-500' : 
+         status === 'warning' ? 'bg-yellow-500 animate-pulse' : 'bg-gray-600'
+      }`} />
+      <div>
+         <h4 className={`font-bold text-sm ${status === 'done' ? 'text-gray-500 line-through' : 'text-white'}`}>{title}</h4>
+         <p className="text-xs text-gray-400 leading-relaxed">{desc}</p>
+      </div>
+      {status === 'pending' && <span className="ml-auto text-[10px] font-bold bg-white/10 px-2 py-1 rounded text-gray-400">TODO</span>}
    </div>
 );
 
@@ -205,7 +258,7 @@ const EventModeration: React.FC<{ events: Event[], onDeleteEvent?: (id: string) 
                      <td className="p-4 text-gray-400">{new Date(evt.date).toLocaleDateString()}</td>
                      <td className="p-4"><span className="text-green-400 text-xs bg-green-500/10 px-2 py-1 rounded">Publicado</span></td>
                      <td className="p-4 text-right">
-                        <button onClick={() => onDeleteEvent && onDeleteEvent(evt.id)} className="text-red-500 hover:bg-red-500/10 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
+                        <button onClick={() => onDeleteEvent && onDeleteEvent(evt.id)} className="text-red-500 hover:bg-red-500/10 p-2 rounded" title="Apagar Evento"><Trash2 className="w-4 h-4" /></button>
                      </td>
                   </tr>
                ))}

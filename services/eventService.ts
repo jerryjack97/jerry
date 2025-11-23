@@ -1,3 +1,4 @@
+
 import { Event } from '../types';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { INITIAL_EVENTS } from '../constants';
@@ -45,6 +46,7 @@ export const eventService = {
             id: e.id,
             title: e.title,
             description: e.description,
+            category: e.category, // Mapear categoria
             date: e.date,
             location: e.location,
             price: Number(e.price),
@@ -64,8 +66,6 @@ export const eventService = {
     const localEvents = getLocalEvents();
 
     // 3. Combina tudo: Initial -> Local -> DB
-    // A ordem é importante: o último array (dbEvents) vai sobrescrever duplicatas no Map se tiverem o mesmo ID.
-    // Isso garante que se você deletou algo do LocalStorage ou editou no DB, a versão mais robusta prevalece.
     const allEvents = [...INITIAL_EVENTS, ...localEvents, ...dbEvents];
     
     // Remove duplicatas baseadas no ID
@@ -107,6 +107,7 @@ export const eventService = {
           {
             title: eventData.title,
             description: eventData.description,
+            category: eventData.category, // Salvar categoria
             date: eventData.date,
             location: eventData.location,
             price: eventData.price,
@@ -130,6 +131,7 @@ export const eventService = {
         id: data.id,
         title: data.title,
         description: data.description,
+        category: data.category,
         date: data.date,
         location: data.location,
         price: Number(data.price),
@@ -155,7 +157,7 @@ export const eventService = {
         try {
             const { error } = await supabase.from('events').delete().eq('id', eventId);
             if (error) {
-                console.warn("Erro ao deletar do Supabase (pode ser um evento apenas local ou inicial):", error.message);
+                console.warn("Erro ao deletar do Supabase:", error.message);
             }
         } catch (e) {
             console.error("Erro ao deletar:", e);

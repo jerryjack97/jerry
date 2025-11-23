@@ -1,3 +1,4 @@
+
 import { Plan, Event } from './types';
 
 export const SUBSCRIPTION_PLANS: Plan[] = [
@@ -29,6 +30,7 @@ export const INITIAL_EVENTS: Event[] = [
     id: '1',
     title: 'Festival de Jazz de Luanda',
     description: 'Uma noite mágica com os melhores saxofonistas de Angola e convidados internacionais.',
+    category: 'Música',
     date: '2025-04-15',
     location: 'Baía de Luanda',
     price: 15000,
@@ -42,6 +44,7 @@ export const INITIAL_EVENTS: Event[] = [
     id: '2',
     title: 'Exposição de Arte Contemporânea',
     description: 'Obras inéditas de jovens artistas angolanos explorando o futurismo africano.',
+    category: 'Arte & Exposição',
     date: '2025-05-20',
     location: 'Galeria H.O',
     price: 5000,
@@ -55,6 +58,7 @@ export const INITIAL_EVENTS: Event[] = [
     id: '3',
     title: 'Teatro: O Regresso',
     description: 'Uma peça emocionante sobre raízes e reencontros.',
+    category: 'Teatro',
     date: '2025-06-05',
     location: 'Elinga Teatro',
     price: 8000,

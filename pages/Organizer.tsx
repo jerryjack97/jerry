@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Calendar, DollarSign, BarChart3, ShieldCheck, Settings, 
   QrCode, MessageSquare, Plus, Upload, Image as ImageIcon, Sparkles, 
   Loader2, Phone, Check, X, FileText, TrendingUp, Wallet, Bell, Search, 
-  ChevronRight, Download, AlertCircle 
+  ChevronRight, Download, AlertCircle, Lock 
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area } from 'recharts';
 
@@ -109,7 +109,6 @@ export const Organizer: React.FC<OrganizerProps> = ({ organizer: initialOrganize
               </div>
               <span className="font-bold text-white">Área do Produtor</span>
            </div>
-           {/* Mobile Nav Dropdown could go here, utilizing simple select for now in complex implementation */}
            <select 
               value={activeTab} 
               onChange={(e) => setActiveTab(e.target.value as Tab)}
@@ -192,9 +191,10 @@ const DashboardHome: React.FC<{ organizer: OrganizerProfile, salesData: any[] }>
               <div className="p-2 bg-unikiala-pink/20 rounded-lg mr-3"><Plus className="w-4 h-4 text-unikiala-pink" /></div>
               Criar Novo Evento
            </button>
-           <button className="w-full p-4 bg-white/5 hover:bg-white/10 rounded-xl flex items-center text-white transition-colors border border-white/5">
-              <div className="p-2 bg-green-500/20 rounded-lg mr-3"><Download className="w-4 h-4 text-green-500" /></div>
+           <button disabled className="w-full p-4 bg-black/20 rounded-xl flex items-center text-gray-500 border border-white/5 cursor-not-allowed relative overflow-hidden">
+              <div className="p-2 bg-gray-800 rounded-lg mr-3"><Download className="w-4 h-4 text-gray-600" /></div>
               Solicitar Saque
+              <span className="absolute right-4 text-[10px] bg-white/10 px-2 py-1 rounded">Em Breve</span>
            </button>
            <button className="w-full p-4 bg-white/5 hover:bg-white/10 rounded-xl flex items-center text-white transition-colors border border-white/5">
               <div className="p-2 bg-blue-500/20 rounded-lg mr-3"><MessageSquare className="w-4 h-4 text-blue-500" /></div>
@@ -220,7 +220,12 @@ const FinancialHub: React.FC<{ organizer: OrganizerProfile, transactions: Financ
   <div className="space-y-6 animate-in fade-in duration-500">
     <h2 className="text-2xl font-bold text-white">Carteira & Financeiro</h2>
     
-    <div className="bg-gradient-to-r from-gray-900 to-black border border-white/10 p-8 rounded-3xl flex flex-col md:flex-row justify-between items-center gap-6">
+    <div className="bg-gradient-to-r from-gray-900 to-black border border-white/10 p-8 rounded-3xl flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden">
+       {/* Mock Overlay to show it's a preview */}
+       <div className="absolute top-2 right-2 bg-yellow-500/20 text-yellow-500 px-3 py-1 rounded-full text-xs font-bold flex items-center">
+         <Lock className="w-3 h-3 mr-1" /> Modo Simulação
+       </div>
+
        <div>
           <p className="text-gray-400 uppercase tracking-widest text-sm mb-2">Saldo Disponível</p>
           <h1 className="text-4xl md:text-5xl font-display font-bold text-white">
@@ -229,10 +234,10 @@ const FinancialHub: React.FC<{ organizer: OrganizerProfile, transactions: Financ
           <p className="text-xs text-gray-500 mt-2">*Valores livres de taxas da plataforma</p>
        </div>
        <div className="flex gap-4">
-          <button className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-bold transition-colors">
+          <button disabled title="Integração Bancária em breve" className="bg-white/5 text-gray-500 px-6 py-3 rounded-xl font-bold cursor-not-allowed border border-white/5">
              Adicionar Conta Bancária
           </button>
-          <button className="bg-unikiala-pink hover:bg-white text-black px-6 py-3 rounded-xl font-bold shadow-neon transition-all">
+          <button disabled title="Integração Bancária em breve" className="bg-unikiala-pink/20 text-unikiala-pink px-6 py-3 rounded-xl font-bold cursor-not-allowed border border-unikiala-pink/20">
              Solicitar Saque
           </button>
        </div>
@@ -240,7 +245,7 @@ const FinancialHub: React.FC<{ organizer: OrganizerProfile, transactions: Financ
 
     <div className="bg-unikiala-surface border border-white/5 rounded-3xl overflow-hidden">
        <div className="p-6 border-b border-white/5">
-          <h3 className="font-bold text-white">Extrato Recente</h3>
+          <h3 className="font-bold text-white">Extrato Recente (Simulado)</h3>
        </div>
        <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -532,6 +537,7 @@ const EventsManager: React.FC<{ onAddEvent: (event: Omit<Event, 'id'>) => Promis
 // Extracted Form Component
 const CreateEventForm: React.FC<{ onAddEvent: (e: any) => Promise<boolean>, isSubscribed: boolean, onCancel: () => void }> = ({ onAddEvent, isSubscribed, onCancel }) => {
     const [title, setTitle] = useState('');
+    const [category, setCategory] = useState('Música'); // Campo Categoria
     const [description, setDescription] = useState('');
     const [details, setDetails] = useState('');
     const [date, setDate] = useState('');
@@ -570,7 +576,7 @@ const CreateEventForm: React.FC<{ onAddEvent: (e: any) => Promise<boolean>, isSu
         e.preventDefault();
         setIsSubmitting(true);
         const success = await onAddEvent({
-            title, description, date, location, price: Number(price), imageUrl,
+            title, category, description, date, location, price: Number(price), imageUrl,
             organizerId: 'current', organizerWhatsapp: whatsapp, highlighted: isSubscribed
         });
         setIsSubmitting(false);
@@ -592,6 +598,27 @@ const CreateEventForm: React.FC<{ onAddEvent: (e: any) => Promise<boolean>, isSu
                     </div>
                     <div className="space-y-4">
                         <input required placeholder="Título do Evento" value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-black/50 border border-gray-700 rounded-xl p-3 text-white" />
+                        
+                        {/* Campo de Categoria */}
+                        <div>
+                           <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Categoria</label>
+                           <select 
+                              value={category} 
+                              onChange={e => setCategory(e.target.value)}
+                              className="w-full bg-black/50 border border-gray-700 rounded-xl p-3 text-white appearance-none outline-none focus:border-unikiala-pink"
+                           >
+                              <option>Música</option>
+                              <option>Festivais</option>
+                              <option>Teatro & Artes</option>
+                              <option>Workshop & Cursos</option>
+                              <option>Stand-up Comedy</option>
+                              <option>Exposições</option>
+                              <option>Infantil</option>
+                              <option>Gastronomia</option>
+                              <option>Outros</option>
+                           </select>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                            <input required type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full bg-black/50 border border-gray-700 rounded-xl p-3 text-white" />
                            <input required type="number" placeholder="Preço" value={price} onChange={e => setPrice(e.target.value)} className="w-full bg-black/50 border border-gray-700 rounded-xl p-3 text-white" />
