@@ -127,9 +127,9 @@ const GlobalDashboard: React.FC<{ events: Event[], organizers: OrganizerProfile[
                   desc="Configurar Buckets para salvar fotos reais em vez de Base64 (lento)."
                />
                <RoadmapItem 
-                  status="pending" 
+                  status="done" 
                   title="Validação de Ingressos (QR)" 
-                  desc="Gerar Hash única para cada ingresso e validar via câmera."
+                  desc="Ferramenta de simulação de validação por câmera implementada no painel do organizador."
                />
                <RoadmapItem 
                   status="pending" 

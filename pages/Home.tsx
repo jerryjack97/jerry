@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Event } from '../types';
-import { Calendar, MapPin, Search, ArrowRight, X, Truck, Store, MessageCircle, DollarSign, Map as MapIcon, Filter } from 'lucide-react';
+import { Calendar, MapPin, Search, ArrowRight, X, Truck, Store, MessageCircle, DollarSign, Map as MapIcon, Filter, Tag } from 'lucide-react';
 
 // Declare Leaflet global to avoid TS errors since we import it via CDN
 declare const L: any;
@@ -10,10 +10,13 @@ interface HomeProps {
   events: Event[];
 }
 
+const CATEGORIES = ['Todos', 'Música', 'Teatro', 'Arte & Exposição', 'Workshop', 'Festivais', 'Gastronomia', 'Infantil', 'Outros'];
+
 export const Home: React.FC<HomeProps> = ({ events }) => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
   
   const eventsSectionRef = useRef<HTMLDivElement>(null);
 
@@ -37,22 +40,23 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
 
   const clearSearch = () => {
     setSearchTerm('');
+    setSelectedCategory('Todos');
   };
 
   // Lógica de Filtro de Busca Robusta
   const filteredEvents = events.filter(event => {
-    if (!searchTerm) return true;
-    
-    const term = searchTerm.toLowerCase().trim();
-    const title = (event.title || '').toLowerCase();
-    const location = (event.location || '').toLowerCase();
-    const description = (event.description || '').toLowerCase();
+    const matchesSearch = !searchTerm || (() => {
+      const term = searchTerm.toLowerCase().trim();
+      const title = (event.title || '').toLowerCase();
+      const location = (event.location || '').toLowerCase();
+      const description = (event.description || '').toLowerCase();
+      const category = (event.category || '').toLowerCase();
+      return title.includes(term) || location.includes(term) || description.includes(term) || category.includes(term);
+    })();
 
-    return (
-      title.includes(term) ||
-      location.includes(term) ||
-      description.includes(term)
-    );
+    const matchesCategory = selectedCategory === 'Todos' || event.category === selectedCategory;
+
+    return matchesSearch && matchesCategory;
   });
 
   const featuredEvents = filteredEvents.filter(e => e.highlighted);
@@ -105,7 +109,7 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
               />
               {searchTerm && (
                 <button 
-                  onClick={clearSearch}
+                  onClick={() => setSearchTerm('')}
                   className="absolute right-2 p-1 text-gray-400 hover:text-white bg-white/10 rounded-full"
                 >
                   <X className="w-4 h-4" />
@@ -119,19 +123,40 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
               Explorar
             </button>
           </div>
+
+          {/* Category Filters */}
+          <div className="mt-8 flex flex-wrap justify-center gap-2 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+             {CATEGORIES.map(cat => (
+                <button
+                   key={cat}
+                   onClick={() => setSelectedCategory(cat)}
+                   className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${
+                      selectedCategory === cat 
+                      ? 'bg-unikiala-pink text-black border-unikiala-pink shadow-neon' 
+                      : 'bg-black/30 text-gray-300 border-white/10 hover:border-white/30 hover:text-white'
+                   }`}
+                >
+                   {cat}
+                </button>
+             ))}
+          </div>
         </div>
       </div>
 
       <div ref={eventsSectionRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
         
         {/* Resultados da Busca (Contador) */}
-        {searchTerm && (
-          <div className="mb-8 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+        {(searchTerm || selectedCategory !== 'Todos') && (
+          <div className="mb-8 flex items-center gap-2 animate-in fade-in slide-in-from-top-2 bg-white/5 p-4 rounded-xl border border-white/10">
              <Filter className="w-4 h-4 text-unikiala-pink" />
              <span className="text-gray-400 text-sm">
-               Encontrados <strong className="text-white">{filteredEvents.length}</strong> resultados para "{searchTerm}"
+               Exibindo <strong className="text-white">{filteredEvents.length}</strong> eventos 
+               {selectedCategory !== 'Todos' && <span> em <strong className="text-unikiala-pink">{selectedCategory}</strong></span>}
+               {searchTerm && <span> para busca "<strong className="text-white">{searchTerm}</strong>"</span>}
              </span>
-             <button onClick={clearSearch} className="ml-auto text-xs text-unikiala-pink hover:underline">Limpar filtro</button>
+             <button onClick={clearSearch} className="ml-auto text-xs font-bold text-unikiala-pink hover:underline flex items-center">
+                <X className="w-3 h-3 mr-1" /> Limpar Filtros
+             </button>
           </div>
         )}
 
@@ -152,12 +177,17 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
         </section>
 
         {/* Search No Results Feedback */}
-        {searchTerm && filteredEvents.length === 0 && (
+        {filteredEvents.length === 0 && (
           <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/10 mb-12">
             <Search className="w-12 h-12 text-gray-600 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-white mb-2">Nenhum evento encontrado</h3>
-            <p className="text-gray-400">Não encontramos resultados para "{searchTerm}". Tente outro termo.</p>
-            <button onClick={clearSearch} className="mt-4 text-unikiala-pink hover:underline">Limpar busca</button>
+            <p className="text-gray-400">
+               Não encontramos resultados para os filtros selecionados.
+               {selectedCategory !== 'Todos' && <span className="block mt-1">Tente mudar a categoria de "{selectedCategory}" para "Todos".</span>}
+            </p>
+            <button onClick={clearSearch} className="mt-6 bg-white/10 hover:bg-white/20 text-white px-6 py-2 rounded-full transition-colors">
+               Limpar todos os filtros
+            </button>
           </div>
         )}
 
@@ -323,6 +353,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCur
 
     const message = `*NOVO PEDIDO - UNIKIALA*\n\n` +
       `🎟 *Evento:* ${event.title}\n` +
+      `🏷 *Categoria:* ${event.category || 'Geral'}\n` +
       `📍 *Local:* ${event.location}\n` +
       `📅 *Data:* ${new Date(event.date).toLocaleDateString()}\n` +
       `--------------------------------\n` +
@@ -366,6 +397,12 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCur
               <MapPin className="w-4 h-4 mr-2 text-gray-500" />
               <span>{event.location}</span>
             </div>
+            {event.category && (
+               <div className="flex items-center text-sm text-gray-300">
+                  <Tag className="w-4 h-4 mr-2 text-gray-500" />
+                  <span>{event.category}</span>
+               </div>
+            )}
              <div className="flex items-center text-sm text-gray-300">
               <DollarSign className="w-4 h-4 mr-2 text-gray-500" />
               <span>{formatCurrency(event.price)} / pessoa</span>
@@ -492,10 +529,15 @@ const EventCard: React.FC<{ event: Event; formatCurrency: (v: number) => string;
         {formatCurrency(event.price)}
       </div>
       
-      <div className="absolute bottom-4 left-4 z-20">
+      <div className="absolute bottom-4 left-4 z-20 flex gap-2">
         <span className="bg-unikiala-pink text-black text-[10px] md:text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">
           {event.highlighted ? 'Destaque' : 'Evento'}
         </span>
+        {event.category && (
+           <span className="bg-black/60 border border-white/20 text-white backdrop-blur text-[10px] md:text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">
+              {event.category}
+           </span>
+        )}
       </div>
     </div>
     
