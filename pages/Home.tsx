@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Event } from '../types';
-import { Calendar, MapPin, Search, ArrowRight, X, Truck, Store, MessageCircle, DollarSign, Map as MapIcon, Filter, Tag, Zap, Smartphone, CheckCircle, Loader2, Heart, Share2, Download, Printer } from 'lucide-react';
+import { Event, Comment } from '../types';
+import { Calendar, MapPin, Search, ArrowRight, X, Truck, Store, MessageCircle, DollarSign, Map as MapIcon, Filter, Tag, Zap, Smartphone, CheckCircle, Loader2, Heart, Share2, Download, Printer, UserPlus, Check, HelpCircle, Send } from 'lucide-react';
 
 // Declare Leaflet global to avoid TS errors since we import it via CDN
 declare const L: any;
@@ -22,6 +22,16 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
   const [favorites, setFavorites] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('unikiala_favorites');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // Followed Organizers State
+  const [followedOrganizers, setFollowedOrganizers] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('unikiala_following');
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
       return [];
@@ -61,6 +71,17 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
         : [...prev, eventId];
       localStorage.setItem('unikiala_favorites', JSON.stringify(newFavs));
       return newFavs;
+    });
+  };
+
+  const toggleFollow = (organizerId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFollowedOrganizers(prev => {
+      const newFollowing = prev.includes(organizerId)
+        ? prev.filter(id => id !== organizerId)
+        : [...prev, organizerId];
+      localStorage.setItem('unikiala_following', JSON.stringify(newFollowing));
+      return newFollowing;
     });
   };
 
@@ -254,6 +275,8 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
                   isFavorite={favorites.includes(event.id)}
                   onToggleFavorite={(e) => toggleFavorite(event.id, e)}
                   onShare={(e) => handleShare(event, e)}
+                  isFollowed={followedOrganizers.includes(event.organizerId)}
+                  onToggleFollow={(e) => toggleFollow(event.organizerId, e)}
                 />
               ))}
             </div>
@@ -277,6 +300,8 @@ export const Home: React.FC<HomeProps> = ({ events }) => {
                   isFavorite={favorites.includes(event.id)}
                   onToggleFavorite={(e) => toggleFavorite(event.id, e)}
                   onShare={(e) => handleShare(event, e)}
+                  isFollowed={followedOrganizers.includes(event.organizerId)}
+                  onToggleFollow={(e) => toggleFollow(event.organizerId, e)}
                 />
               ))}
             </div>
@@ -373,6 +398,8 @@ interface CheckoutModalProps {
 }
 
 const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCurrency }) => {
+  const [activeTab, setActiveTab] = useState<'TICKETS' | 'QA'>('TICKETS');
+
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
@@ -582,7 +609,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCur
         
         <div className="bg-gradient-to-r from-unikiala-pink/20 to-purple-900/20 p-4 md:p-6 border-b border-white/10 flex justify-between items-start shrink-0">
           <div>
-            <h3 className="text-lg md:text-xl font-display font-bold text-white mb-1">Finalizar Compra</h3>
+            <h3 className="text-lg md:text-xl font-display font-bold text-white mb-1">
+              {activeTab === 'TICKETS' ? 'Finalizar Compra' : 'Dúvidas & Respostas'}
+            </h3>
             <p className="text-gray-400 text-xs md:text-sm">{event.title}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-white p-1 bg-white/5 rounded-full">
@@ -590,176 +619,265 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({ event, onClose, formatCur
           </button>
         </div>
 
+        {/* TAB SWITCHER */}
+        <div className="flex border-b border-white/10">
+           <button 
+              onClick={() => setActiveTab('TICKETS')}
+              className={`flex-1 py-3 text-sm font-bold transition-colors ${activeTab === 'TICKETS' ? 'text-unikiala-pink border-b-2 border-unikiala-pink' : 'text-gray-500 hover:text-white'}`}
+           >
+              Ingressos
+           </button>
+           <button 
+              onClick={() => setActiveTab('QA')}
+              className={`flex-1 py-3 text-sm font-bold transition-colors ${activeTab === 'QA' ? 'text-unikiala-pink border-b-2 border-unikiala-pink' : 'text-gray-500 hover:text-white'}`}
+           >
+              Dúvidas (Q&A)
+           </button>
+        </div>
+
         <div className="p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto custom-scrollbar">
-          {/* Resumo do Evento */}
-          <div className="bg-white/5 rounded-xl p-4 border border-white/5 space-y-2">
-            <h4 className="text-xs font-bold text-unikiala-pink uppercase mb-2">Detalhes do Evento</h4>
-            <div className="flex items-center text-sm text-gray-300">
-              <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-              <span>{new Date(event.date).toLocaleDateString('pt-AO')}</span>
-            </div>
-            <div className="flex items-center text-sm text-gray-300">
-              <MapPin className="w-4 h-4 mr-2 text-gray-500" />
-              <span>{event.location}</span>
-            </div>
-             <div className="flex items-center text-sm text-gray-300">
-              <DollarSign className="w-4 h-4 mr-2 text-gray-500" />
-              <span>{formatCurrency(event.price)} / pessoa</span>
-            </div>
-          </div>
-
-          {/* Nome */}
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Seu Nome</label>
-            <input 
-              type="text" 
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-black/50 border border-gray-700 rounded-xl p-3 text-white focus:border-unikiala-pink outline-none"
-              placeholder="Digite seu nome completo"
-            />
-          </div>
-
-          {/* Quantidade */}
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Quantidade</label>
-            <div className="flex items-center space-x-4">
-              <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/20 text-white font-bold">-</button>
-              <span className="text-xl font-bold text-white">{quantity}</span>
-              <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/20 text-white font-bold">+</button>
-            </div>
-          </div>
-
-          {/* Método de Entrega */}
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Entrega</label>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <button 
-                onClick={() => setDeliveryMethod('pickup')}
-                className={`p-3 rounded-xl border flex flex-col items-center justify-center transition-all ${deliveryMethod === 'pickup' ? 'bg-unikiala-pink/10 border-unikiala-pink text-white' : 'bg-black/30 border-gray-800 text-gray-500'}`}
-              >
-                <Store className="w-6 h-6 mb-1" />
-                <span className="text-xs font-bold">Levantamento</span>
-              </button>
-              <button 
-                onClick={() => setDeliveryMethod('delivery')}
-                className={`p-3 rounded-xl border flex flex-col items-center justify-center transition-all ${deliveryMethod === 'delivery' ? 'bg-unikiala-pink/10 border-unikiala-pink text-white' : 'bg-black/30 border-gray-800 text-gray-500'}`}
-              >
-                <Truck className="w-6 h-6 mb-1" />
-                <span className="text-xs font-bold">Delivery</span>
-              </button>
-            </div>
-
-            {deliveryMethod === 'delivery' && (
-              <div className="bg-white/5 p-3 rounded-xl space-y-2 animate-in slide-in-from-top-2">
-                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-white/5 rounded-lg">
-                  <div className="flex items-center">
-                    <input 
-                      type="radio" 
-                      name="zone" 
-                      checked={deliveryZone === 'inside'} 
-                      onChange={() => setDeliveryZone('inside')}
-                      className="mr-3 accent-unikiala-pink" 
-                    />
-                    <span className="text-sm text-gray-300">Na Província</span>
+          
+          {activeTab === 'TICKETS' ? (
+             <>
+                {/* Resumo do Evento */}
+                <div className="bg-white/5 rounded-xl p-4 border border-white/5 space-y-2">
+                  <h4 className="text-xs font-bold text-unikiala-pink uppercase mb-2">Detalhes do Evento</h4>
+                  <div className="flex items-center text-sm text-gray-300">
+                    <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+                    <span>{new Date(event.date).toLocaleDateString('pt-AO')}</span>
                   </div>
-                  <span className="text-sm font-bold text-unikiala-pink">+2.000 Kzs</span>
-                </label>
-                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-white/5 rounded-lg">
-                  <div className="flex items-center">
-                    <input 
-                      type="radio" 
-                      name="zone" 
-                      checked={deliveryZone === 'outside'} 
-                      onChange={() => setDeliveryZone('outside')}
-                      className="mr-3 accent-unikiala-pink" 
-                    />
-                    <span className="text-sm text-gray-300">Fora da Província</span>
+                  <div className="flex items-center text-sm text-gray-300">
+                    <MapPin className="w-4 h-4 mr-2 text-gray-500" />
+                    <span>{event.location}</span>
                   </div>
-                  <span className="text-sm font-bold text-unikiala-pink">+5.000 Kzs</span>
-                </label>
-              </div>
-            )}
-          </div>
+                   <div className="flex items-center text-sm text-gray-300">
+                    <DollarSign className="w-4 h-4 mr-2 text-gray-500" />
+                    <span>{formatCurrency(event.price)} / pessoa</span>
+                  </div>
+                </div>
 
-          {/* Pagamento com Kwik */}
-          <div>
-             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Forma de Pagamento</label>
-             <div className="space-y-3">
-                <label className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'WHATSAPP' ? 'bg-white/10 border-unikiala-pink text-white' : 'bg-black/30 border-gray-800 text-gray-500'}`}>
-                   <input type="radio" name="payment" checked={paymentMethod === 'WHATSAPP'} onChange={() => setPaymentMethod('WHATSAPP')} className="mr-3 accent-unikiala-pink" />
-                   <MessageCircle className="w-5 h-5 mr-3 text-green-500" />
-                   <span className="font-bold text-sm">Pagar no WhatsApp / Local</span>
-                </label>
+                {/* Nome */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Seu Nome</label>
+                  <input 
+                    type="text" 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-black/50 border border-gray-700 rounded-xl p-3 text-white focus:border-unikiala-pink outline-none"
+                    placeholder="Digite seu nome completo"
+                  />
+                </div>
 
-                <label className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'KWIK' ? 'bg-blue-500/10 border-blue-500 text-white' : 'bg-black/30 border-gray-800 text-gray-500'}`}>
-                   <input type="radio" name="payment" checked={paymentMethod === 'KWIK'} onChange={() => setPaymentMethod('KWIK')} className="mr-3 accent-blue-500" />
-                   <Zap className="w-5 h-5 mr-3 text-blue-400" />
-                   <span className="font-bold text-sm">Kwik Instant Payment</span>
-                   <span className="ml-auto text-xs bg-blue-500 text-black px-2 py-0.5 rounded font-bold">Rápido</span>
-                </label>
+                {/* Quantidade */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Quantidade</label>
+                  <div className="flex items-center space-x-4">
+                    <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/20 text-white font-bold">-</button>
+                    <span className="text-xl font-bold text-white">{quantity}</span>
+                    <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/20 text-white font-bold">+</button>
+                  </div>
+                </div>
 
-                {paymentMethod === 'KWIK' && (
-                   <div className="pl-4 animate-in slide-in-from-top-2">
-                      <p className="text-xs text-blue-300 mb-2">Insira seu nº Kwik para autorizar o pagamento:</p>
-                      <div className="flex items-center bg-black/50 border border-blue-500/50 rounded-xl px-3 py-2">
-                         <Smartphone className="w-4 h-4 text-blue-400 mr-2" />
-                         <input 
-                           type="tel" 
-                           placeholder="923 xxx xxx" 
-                           value={kwikPhone}
-                           onChange={e => setKwikPhone(e.target.value)}
-                           className="bg-transparent border-none outline-none text-white w-full placeholder-gray-600"
-                        />
-                      </div>
+                {/* Método de Entrega */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Entrega</label>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <button 
+                      onClick={() => setDeliveryMethod('pickup')}
+                      className={`p-3 rounded-xl border flex flex-col items-center justify-center transition-all ${deliveryMethod === 'pickup' ? 'bg-unikiala-pink/10 border-unikiala-pink text-white' : 'bg-black/30 border-gray-800 text-gray-500'}`}
+                    >
+                      <Store className="w-6 h-6 mb-1" />
+                      <span className="text-xs font-bold">Levantamento</span>
+                    </button>
+                    <button 
+                      onClick={() => setDeliveryMethod('delivery')}
+                      className={`p-3 rounded-xl border flex flex-col items-center justify-center transition-all ${deliveryMethod === 'delivery' ? 'bg-unikiala-pink/10 border-unikiala-pink text-white' : 'bg-black/30 border-gray-800 text-gray-500'}`}
+                    >
+                      <Truck className="w-6 h-6 mb-1" />
+                      <span className="text-xs font-bold">Delivery</span>
+                    </button>
+                  </div>
+
+                  {deliveryMethod === 'delivery' && (
+                    <div className="bg-white/5 p-3 rounded-xl space-y-2 animate-in slide-in-from-top-2">
+                      <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-white/5 rounded-lg">
+                        <div className="flex items-center">
+                          <input 
+                            type="radio" 
+                            name="zone" 
+                            checked={deliveryZone === 'inside'} 
+                            onChange={() => setDeliveryZone('inside')}
+                            className="mr-3 accent-unikiala-pink" 
+                          />
+                          <span className="text-sm text-gray-300">Na Província</span>
+                        </div>
+                        <span className="text-sm font-bold text-unikiala-pink">+2.000 Kzs</span>
+                      </label>
+                      <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-white/5 rounded-lg">
+                        <div className="flex items-center">
+                          <input 
+                            type="radio" 
+                            name="zone" 
+                            checked={deliveryZone === 'outside'} 
+                            onChange={() => setDeliveryZone('outside')}
+                            className="mr-3 accent-unikiala-pink" 
+                          />
+                          <span className="text-sm text-gray-300">Fora da Província</span>
+                        </div>
+                        <span className="text-sm font-bold text-unikiala-pink">+5.000 Kzs</span>
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                {/* Pagamento com Kwik */}
+                <div>
+                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Forma de Pagamento</label>
+                   <div className="space-y-3">
+                      <label className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'WHATSAPP' ? 'bg-white/10 border-unikiala-pink text-white' : 'bg-black/30 border-gray-800 text-gray-500'}`}>
+                         <input type="radio" name="payment" checked={paymentMethod === 'WHATSAPP'} onChange={() => setPaymentMethod('WHATSAPP')} className="mr-3 accent-unikiala-pink" />
+                         <MessageCircle className="w-5 h-5 mr-3 text-green-500" />
+                         <span className="font-bold text-sm">Pagar no WhatsApp / Local</span>
+                      </label>
+
+                      <label className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'KWIK' ? 'bg-blue-500/10 border-blue-500 text-white' : 'bg-black/30 border-gray-800 text-gray-500'}`}>
+                         <input type="radio" name="payment" checked={paymentMethod === 'KWIK'} onChange={() => setPaymentMethod('KWIK')} className="mr-3 accent-blue-500" />
+                         <Zap className="w-5 h-5 mr-3 text-blue-400" />
+                         <span className="font-bold text-sm">Kwik Instant Payment</span>
+                         <span className="ml-auto text-xs bg-blue-500 text-black px-2 py-0.5 rounded font-bold">Rápido</span>
+                      </label>
+
+                      {paymentMethod === 'KWIK' && (
+                         <div className="pl-4 animate-in slide-in-from-top-2">
+                            <p className="text-xs text-blue-300 mb-2">Insira seu nº Kwik para autorizar o pagamento:</p>
+                            <div className="flex items-center bg-black/50 border border-blue-500/50 rounded-xl px-3 py-2">
+                               <Smartphone className="w-4 h-4 text-blue-400 mr-2" />
+                               <input 
+                                 type="tel" 
+                                 placeholder="923 xxx xxx" 
+                                 value={kwikPhone}
+                                 onChange={e => setKwikPhone(e.target.value)}
+                                 className="bg-transparent border-none outline-none text-white w-full placeholder-gray-600"
+                              />
+                            </div>
+                         </div>
+                      )}
                    </div>
-                )}
-             </div>
-          </div>
+                </div>
 
-          {/* Resumo */}
-          <div className="border-t border-white/10 pt-4 space-y-2">
-            <div className="flex justify-between text-sm text-gray-400">
-              <span>Ingressos ({quantity}x)</span>
-              <span>{formatCurrency(event.price * quantity)}</span>
-            </div>
-            {deliveryMethod === 'delivery' && (
-              <div className="flex justify-between text-sm text-gray-400">
-                <span>Taxa de Entrega</span>
-                <span>{formatCurrency(getDeliveryFee())}</span>
-              </div>
-            )}
-            <div className="flex justify-between text-xl font-bold text-white pt-2">
-              <span>Total</span>
-              <span className="text-unikiala-pink">{formatCurrency(total)}</span>
-            </div>
-          </div>
+                {/* Resumo */}
+                <div className="border-t border-white/10 pt-4 space-y-2">
+                  <div className="flex justify-between text-sm text-gray-400">
+                    <span>Ingressos ({quantity}x)</span>
+                    <span>{formatCurrency(event.price * quantity)}</span>
+                  </div>
+                  {deliveryMethod === 'delivery' && (
+                    <div className="flex justify-between text-sm text-gray-400">
+                      <span>Taxa de Entrega</span>
+                      <span>{formatCurrency(getDeliveryFee())}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-xl font-bold text-white pt-2">
+                    <span>Total</span>
+                    <span className="text-unikiala-pink">{formatCurrency(total)}</span>
+                  </div>
+                </div>
 
-          <button 
-            onClick={handleCheckout}
-            disabled={isProcessingPayment}
-            className={`w-full font-bold py-4 rounded-xl flex items-center justify-center transition-all shadow-lg ${
-               paymentMethod === 'KWIK' 
-                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/50' 
-                  : 'bg-[#25D366] hover:bg-[#20bd5a] text-black shadow-green-900/50'
-            } ${isProcessingPayment ? 'opacity-80 cursor-wait' : ''}`}
-          >
-            {isProcessingPayment ? (
-               <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Aguardando aprovação Kwik...
-               </>
-            ) : (
-               <>
-                  {paymentMethod === 'KWIK' ? <Zap className="w-5 h-5 mr-2" /> : <MessageCircle className="w-5 h-5 mr-2" />}
-                  {paymentMethod === 'KWIK' ? 'Pagar com Kwik' : 'Confirmar Pedido'}
-               </>
-            )}
-          </button>
+                <button 
+                  onClick={handleCheckout}
+                  disabled={isProcessingPayment}
+                  className={`w-full font-bold py-4 rounded-xl flex items-center justify-center transition-all shadow-lg ${
+                     paymentMethod === 'KWIK' 
+                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/50' 
+                        : 'bg-[#25D366] hover:bg-[#20bd5a] text-black shadow-green-900/50'
+                  } ${isProcessingPayment ? 'opacity-80 cursor-wait' : ''}`}
+                >
+                  {isProcessingPayment ? (
+                     <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Aguardando aprovação Kwik...
+                     </>
+                  ) : (
+                     <>
+                        {paymentMethod === 'KWIK' ? <Zap className="w-5 h-5 mr-2" /> : <MessageCircle className="w-5 h-5 mr-2" />}
+                        {paymentMethod === 'KWIK' ? 'Pagar com Kwik' : 'Confirmar Pedido'}
+                     </>
+                  )}
+                </button>
+             </>
+          ) : (
+             <QASection eventId={event.id} />
+          )}
+
         </div>
       </div>
     </div>
   );
+};
+
+const QASection: React.FC<{ eventId: string }> = ({ eventId }) => {
+   const [comments, setComments] = useState<Comment[]>([
+      { id: '1', eventId, userId: 'u2', userName: 'Maria Silva', text: 'Criança paga meia entrada?', createdAt: '2h atrás', organizerReply: 'Sim, até 12 anos pagam 50%.', organizerReplyAt: '1h atrás' },
+      { id: '2', eventId, userId: 'u3', userName: 'Pedro Costa', text: 'Tem estacionamento no local?', createdAt: '5h atrás' }
+   ]);
+   const [newComment, setNewComment] = useState('');
+
+   const handleSend = () => {
+      if (!newComment.trim()) return;
+      const comment: Comment = {
+         id: Math.random().toString(),
+         eventId,
+         userId: 'me',
+         userName: 'Você',
+         text: newComment,
+         createdAt: 'Agora'
+      };
+      setComments([comment, ...comments]);
+      setNewComment('');
+   };
+
+   return (
+      <div className="space-y-4 animate-in fade-in">
+         <div className="flex gap-2">
+            <input 
+               type="text" 
+               value={newComment}
+               onChange={e => setNewComment(e.target.value)}
+               placeholder="Faça uma pergunta ao organizador..."
+               className="flex-1 bg-black/30 border border-white/10 rounded-xl px-4 text-sm text-white focus:border-unikiala-pink outline-none"
+            />
+            <button onClick={handleSend} className="bg-unikiala-pink p-3 rounded-xl text-black hover:bg-white transition-colors">
+               <Send className="w-4 h-4" />
+            </button>
+         </div>
+
+         <div className="space-y-3 max-h-60 overflow-y-auto custom-scrollbar">
+            {comments.map(comment => (
+               <div key={comment.id} className="bg-white/5 p-3 rounded-xl border border-white/5 text-sm">
+                  <div className="flex justify-between items-start mb-1">
+                     <span className="font-bold text-white">{comment.userName}</span>
+                     <span className="text-[10px] text-gray-500">{comment.createdAt}</span>
+                  </div>
+                  <p className="text-gray-300 mb-2">{comment.text}</p>
+                  
+                  {comment.organizerReply ? (
+                     <div className="bg-unikiala-pink/10 border-l-2 border-unikiala-pink p-2 rounded-r-lg mt-2">
+                        <p className="text-xs font-bold text-unikiala-pink mb-0.5">Resposta do Organizador</p>
+                        <p className="text-gray-300 text-xs">{comment.organizerReply}</p>
+                     </div>
+                  ) : (
+                     <p className="text-[10px] text-gray-600 italic">Aguardando resposta...</p>
+                  )}
+               </div>
+            ))}
+         </div>
+         
+         <div className="text-center text-xs text-gray-500 mt-4 border-t border-white/5 pt-2">
+            <HelpCircle className="w-3 h-3 inline mr-1" />
+            As perguntas são públicas e visíveis para todos.
+         </div>
+      </div>
+   );
 };
 
 interface EventCardProps { 
@@ -770,10 +888,12 @@ interface EventCardProps {
   isFavorite: boolean;
   onToggleFavorite: (e: React.MouseEvent) => void;
   onShare: (e: React.MouseEvent) => void;
+  isFollowed: boolean;
+  onToggleFollow: (e: React.MouseEvent) => void;
 }
 
 const EventCard: React.FC<EventCardProps> = ({ 
-  event, formatCurrency, featured, onBuy, isFavorite, onToggleFavorite, onShare 
+  event, formatCurrency, featured, onBuy, isFavorite, onToggleFavorite, onShare, isFollowed, onToggleFollow
 }) => (
   <div className={`
     group relative bg-unikiala-surface rounded-2xl overflow-hidden flex flex-col
@@ -805,6 +925,13 @@ const EventCard: React.FC<EventCardProps> = ({
           title="Compartilhar"
         >
           <Share2 className="w-5 h-5 text-white" />
+        </button>
+        <button 
+          onClick={onToggleFollow}
+          className={`p-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 transition-colors ${isFollowed ? 'bg-unikiala-pink text-black' : 'hover:bg-white hover:text-black text-white'}`}
+          title={isFollowed ? "Deixar de Seguir Organizador" : "Seguir Organizador"}
+        >
+          {isFollowed ? <Check className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
         </button>
       </div>
       

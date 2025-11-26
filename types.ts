@@ -88,3 +88,47 @@ export interface TicketStats {
   totalSold: number;
   revenue: number;
 }
+
+// --- NEW TYPES FOR COMMUNITY FEATURES ---
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ALERT';
+  read: boolean;
+  createdAt: string;
+  link?: string;
+}
+
+export interface Comment {
+  id: string;
+  eventId: string;
+  userId: string;
+  userName: string;
+  text: string;
+  createdAt: string;
+  organizerReply?: string;
+  organizerReplyAt?: string;
+}
+
+export interface Ticket {
+  id: string;
+  eventId: string;
+  userId?: string;
+  guestName: string;
+  ticketCode: string;
+  qrUrl?: string;
+  category: string;
+  pricePaid: number;
+  status: 'VALID' | 'USED' | 'CANCELLED';
+  usedAt?: string;
+  createdAt: string;
+}
+
+export interface Favorite {
+  userId: string;
+  eventId: string;
+  createdAt: string;
+}

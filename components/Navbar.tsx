@@ -1,7 +1,7 @@
 
-import React, { useRef, useState } from 'react';
-import { UserRole, User } from '../types';
-import { Ticket, Users, LayoutDashboard, Menu, ChevronLeft, ChevronRight, LogOut, User as UserIcon, X } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { UserRole, User, Notification } from '../types';
+import { Ticket, Users, LayoutDashboard, Menu, ChevronLeft, ChevronRight, LogOut, User as UserIcon, X, Bell, CheckCircle, Info, AlertTriangle } from 'lucide-react';
 
 interface NavbarProps {
   currentUser: User | null;
@@ -26,14 +26,39 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Notification State
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const notificationRef = useRef<HTMLDivElement>(null);
+  
+  const [notifications, setNotifications] = useState<Notification[]>([
+      { id: '1', userId: 'u1', title: 'Pagamento Confirmado', message: 'Seu ingresso para o Festival de Jazz foi emitido com sucesso.', type: 'SUCCESS', read: false, createdAt: 'Há 5 min' },
+      { id: '2', userId: 'u1', title: 'Nova Resposta', message: 'O organizador respondeu sua dúvida sobre o Workshop de Arte.', type: 'INFO', read: false, createdAt: 'Há 1 hora' },
+      { id: '3', userId: 'u1', title: 'Evento Próximo', message: 'Faltam 2 dias para a Exposição de Arte. Prepare-se!', type: 'WARNING', read: true, createdAt: 'Ontem' },
+  ]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const markAllRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  // Close notifications when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Determinar permissões de visualização
   const isAdmin = currentUser?.role === UserRole.ADMIN;
   const isOrganizer = currentUser?.role === UserRole.ORGANIZER;
   
-  // Organizadores e Admins podem ver a aba Organizador
   const canAccessOrganizer = isAdmin || isOrganizer;
-  // Apenas Admins podem ver a aba Admin
   const canAccessAdmin = isAdmin;
 
   // --- Lógica de Som (Web Audio API) ---
@@ -255,8 +280,66 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
-            {/* User Profile & Logout - Desktop */}
+            {/* User Profile, Notifications & Logout - Desktop */}
             <div className="hidden md:flex items-center gap-4">
+              
+              {/* Notification Center */}
+              {currentUser && (
+                <div className="relative" ref={notificationRef}>
+                  <button 
+                    onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                    className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors relative"
+                    title="Notificações"
+                  >
+                    <Bell className="w-5 h-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-unikiala-pink rounded-full shadow-neon animate-pulse border border-black"></span>
+                    )}
+                  </button>
+
+                  {isNotificationsOpen && (
+                    <div className="absolute top-full right-0 mt-2 w-80 bg-unikiala-surface border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-top-2 fade-in duration-200 z-50">
+                       <div className="flex items-center justify-between p-4 border-b border-white/10 bg-black/40">
+                          <h4 className="font-bold text-white text-sm">Notificações</h4>
+                          {unreadCount > 0 && (
+                             <button onClick={markAllRead} className="text-[10px] text-unikiala-pink font-bold hover:underline">
+                                Marcar como lidas
+                             </button>
+                          )}
+                       </div>
+                       <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                          {notifications.length === 0 ? (
+                             <div className="p-8 text-center text-gray-500">
+                                <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                <p className="text-xs">Nenhuma notificação</p>
+                             </div>
+                          ) : (
+                             notifications.map(note => (
+                                <div key={note.id} className={`p-4 border-b border-white/5 hover:bg-white/5 transition-colors ${!note.read ? 'bg-unikiala-pink/5' : ''}`}>
+                                   <div className="flex gap-3">
+                                      <div className={`mt-1 shrink-0 ${
+                                         note.type === 'SUCCESS' ? 'text-green-400' :
+                                         note.type === 'WARNING' ? 'text-yellow-400' : 'text-blue-400'
+                                      }`}>
+                                         {note.type === 'SUCCESS' ? <CheckCircle className="w-4 h-4" /> :
+                                          note.type === 'WARNING' ? <AlertTriangle className="w-4 h-4" /> :
+                                          <Info className="w-4 h-4" />}
+                                      </div>
+                                      <div>
+                                         <p className="text-sm font-bold text-white leading-tight mb-1">{note.title}</p>
+                                         <p className="text-xs text-gray-400 leading-relaxed">{note.message}</p>
+                                         <p className="text-[10px] text-gray-500 mt-2">{note.createdAt}</p>
+                                      </div>
+                                   </div>
+                                </div>
+                             ))
+                          )}
+                       </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {currentUser && (
                 <button 
                   onClick={() => handleNavClick(UserRole.PROFILE)}
@@ -268,10 +351,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <p className="text-xs text-gray-400 leading-none mt-1">{currentUser.role}</p>
                   </div>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all shadow-neon ${currentRole === UserRole.PROFILE ? 'border-unikiala-pink bg-unikiala-pink/20' : 'border-white/20 bg-white/5 group-hover:border-unikiala-pink'}`}>
-                    {/* Avatar Placeholder com iniciais */}
-                    <span className="font-display font-bold text-white">
-                      {currentUser.name.charAt(0).toUpperCase()}
-                    </span>
+                    {currentUser.avatarUrl ? (
+                       <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                       <span className="font-display font-bold text-white">
+                         {currentUser.name.charAt(0).toUpperCase()}
+                       </span>
+                    )}
                   </div>
                 </button>
               )}
@@ -312,8 +398,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={() => handleNavClick(UserRole.PROFILE)}
                   className={`flex items-center w-full mb-6 p-4 rounded-xl transition-colors border ${currentRole === UserRole.PROFILE ? 'bg-unikiala-pink/10 border-unikiala-pink' : 'bg-white/5 border-transparent hover:bg-white/10'}`}
                 >
-                  <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mr-3 border border-white/20">
-                    <span className="font-display font-bold text-lg text-white">{currentUser.name.charAt(0).toUpperCase()}</span>
+                  <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mr-3 border border-white/20 overflow-hidden">
+                    {currentUser.avatarUrl ? (
+                       <img src={currentUser.avatarUrl} alt={currentUser.name} className="w-full h-full object-cover" />
+                    ) : (
+                       <span className="font-display font-bold text-lg text-white">{currentUser.name.charAt(0).toUpperCase()}</span>
+                    )}
                   </div>
                   <div className="text-left">
                     <p className="text-white font-bold">{currentUser.name}</p>
