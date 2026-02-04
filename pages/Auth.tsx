@@ -1,7 +1,47 @@
+
 import React, { useState } from 'react';
 import { UserRole, User } from '../types';
 import { authService } from '../services/authService';
 import { Mail, Lock, User as UserIcon, ArrowRight, PartyPopper, KeyRound, ArrowLeft } from 'lucide-react';
+
+// Shared Logo Component
+const UnikialaLogo: React.FC<{ className?: string }> = ({ className = "" }) => (
+  <div className={`flex flex-col items-center gap-4 ${className} select-none`}>
+    <div className="relative w-24 h-24 flex items-center justify-center">
+      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-unikiala-pink drop-shadow-neon">
+        {/* Slanted Tribal Roof */}
+        <path 
+          d="M10 65 L50 25 L90 65" 
+          fill="none" 
+          stroke="currentColor" 
+          strokeWidth="6" 
+          strokeLinecap="round" 
+          strokeDasharray="2, 6"
+        />
+        {/* Pot */}
+        <path 
+          d="M44 55 C44 55 36 60 36 72 C36 82 42 88 50 88 C58 88 64 82 64 72 C64 60 56 55 56 55 L56 48 L44 48 Z" 
+          fill="currentColor" 
+        />
+      </svg>
+    </div>
+    <div className="flex items-baseline">
+      <span className="text-4xl font-display font-bold text-white tracking-tighter">
+        UN
+        <span className="relative inline-block mx-0.5">
+          I
+          <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-4 h-2.5 bg-unikiala-pink rounded-t-full shadow-neon"></span>
+        </span>
+        K
+        <span className="relative inline-block mx-0.5">
+          I
+          <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-4 h-2.5 bg-unikiala-pink rounded-t-full shadow-neon"></span>
+        </span>
+        ALA
+      </span>
+    </div>
+  </div>
+);
 
 interface AuthProps {
   onLogin: (user: User) => void;
@@ -60,8 +100,6 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           setError(result.error);
         } else {
           setSuccessMessage('Link de recuperação enviado! Verifique seu email (e a caixa de spam).');
-          // Opcional: Limpar campo
-          // setEmail('');
         }
       }
     } catch (err) {
@@ -84,17 +122,10 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       <div className="w-full max-w-md relative z-10">
         <div className="bg-unikiala-surface/80 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-6 md:p-10 animate-in fade-in zoom-in duration-500">
           
-          <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
-               <div className="w-12 h-12 bg-gradient-to-br from-unikiala-pink to-purple-700 rounded-full flex items-center justify-center shadow-neon">
-                 {authMode === 'RECOVERY' ? (
-                    <KeyRound className="text-white w-6 h-6" />
-                 ) : (
-                    <PartyPopper className="text-white w-6 h-6" />
-                 )}
-               </div>
+          <div className="text-center mb-10">
+            <div className="flex justify-center mb-8">
+               <UnikialaLogo />
             </div>
-            <h1 className="text-3xl font-display font-bold text-white mb-2">UNIKIALA</h1>
             <p className="text-gray-400 text-sm">
               {authMode === 'LOGIN' && 'Bem-vindo de volta ao espetáculo.'}
               {authMode === 'SIGNUP' && 'Crie sua conta e viva a cultura.'}

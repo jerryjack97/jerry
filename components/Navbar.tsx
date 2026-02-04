@@ -3,6 +3,55 @@ import React, { useRef, useState, useEffect } from 'react';
 import { UserRole, User, Notification } from '../types';
 import { Ticket, Users, LayoutDashboard, Menu, ChevronLeft, ChevronRight, LogOut, User as UserIcon, X, Bell, CheckCircle, Info, AlertTriangle } from 'lucide-react';
 
+// New Logo Component based on the provided image
+const UnikialaLogo: React.FC<{ className?: string }> = ({ className = "" }) => (
+  <div className={`flex items-center gap-2 md:gap-3 ${className} group cursor-pointer select-none`}>
+    <div className="relative w-14 md:w-20 h-14 md:h-20 flex items-center justify-center shrink-0">
+      {/* The Tribal Roof and Muringue (SVG recreate) */}
+      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-unikiala-pink group-hover:drop-shadow-neon transition-all duration-300">
+        {/* Slanted Tribal Roof with pattern markers */}
+        <path 
+          d="M10 65 L50 25 L90 65" 
+          fill="none" 
+          stroke="currentColor" 
+          strokeWidth="5" 
+          strokeLinecap="round" 
+          strokeDasharray="1, 5"
+        />
+        {/* Outer roof lines */}
+        <path d="M15 68 L50 33 L85 68" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.3" />
+        
+        {/* The Muringue (Clay Pot) */}
+        <path 
+          d="M44 55 C44 55 36 60 36 72 C36 82 42 88 50 88 C58 88 64 82 64 72 C64 60 56 55 56 55 L56 48 L44 48 Z" 
+          fill="currentColor" 
+        />
+        {/* Tribal bands on the pot */}
+        <rect x="42" y="70" width="16" height="1.5" fill="black" opacity="0.4" />
+        <rect x="42" y="74" width="16" height="1.5" fill="black" opacity="0.4" />
+      </svg>
+    </div>
+    
+    <div className="flex flex-col justify-center">
+      <div className="flex items-center">
+        <span className="text-2xl md:text-5xl font-display font-bold text-white tracking-tighter group-hover:text-unikiala-pink transition-colors duration-300 flex items-baseline">
+          UN
+          <span className="relative inline-block mx-0.5">
+            I
+            <span className="absolute -top-1 md:-top-2 left-1/2 -translate-x-1/2 w-4 md:w-6 h-2 md:h-3 bg-unikiala-pink rounded-t-full shadow-neon"></span>
+          </span>
+          K
+          <span className="relative inline-block mx-0.5">
+            I
+            <span className="absolute -top-1 md:-top-2 left-1/2 -translate-x-1/2 w-4 md:w-6 h-2 md:h-3 bg-unikiala-pink rounded-t-full shadow-neon"></span>
+          </span>
+          ALA
+        </span>
+      </div>
+    </div>
+  </div>
+);
+
 interface NavbarProps {
   currentUser: User | null;
   currentRole: UserRole;
@@ -209,22 +258,18 @@ export const Navbar: React.FC<NavbarProps> = ({
       />
       <nav className="sticky top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-xl supports-[backdrop-filter]:bg-black/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 md:h-20">
+          <div className="flex items-center justify-between h-20 md:h-28">
             <div className="flex items-center gap-4 md:gap-8">
-               {/* Logo */}
+               {/* Updated Tribal Logo */}
               <div 
                 onClick={handleLogoClick}
-                className="flex items-center group cursor-pointer select-none"
-                title="Voltar ao Início"
+                className="flex items-center"
               >
-                <div className="w-1.5 h-6 md:w-2 md:h-8 bg-unikiala-pink mr-2 md:mr-3 rounded-full group-hover:shadow-neon transition-shadow duration-300"></div>
-                <span className="text-xl md:text-3xl font-display font-bold text-white tracking-tighter group-hover:text-unikiala-pink transition-colors duration-300">
-                  UNIKIALA
-                </span>
+                <UnikialaLogo />
               </div>
 
               {/* Navigation Controls - Desktop */}
-              <div className="hidden md:flex items-center space-x-2">
+              <div className="hidden lg:flex items-center space-x-2 ml-4">
                 <button 
                   onClick={onBack} 
                   disabled={!canGoBack}
@@ -243,7 +288,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             
             {/* Desktop Menu */}
-            <div className="hidden md:flex space-x-1 bg-white/5 p-1 rounded-full border border-white/10">
+            <div className="hidden lg:flex space-x-1 bg-white/5 p-1 rounded-full border border-white/10">
               <NavButton 
                 active={currentRole === UserRole.USER} 
                 onClick={() => handleNavClick(UserRole.USER)} 
@@ -281,7 +326,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             {/* User Profile, Notifications & Logout - Desktop */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden lg:flex items-center gap-4">
               
               {/* Notification Center */}
               {currentUser && (
@@ -372,7 +417,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             {/* Mobile Menu Toggle */}
-            <div className="md:hidden flex items-center gap-2">
+            <div className="lg:hidden flex items-center gap-2">
                {/* Simple back button for mobile if needed history */}
                {(canGoBack) && (
                   <button onClick={onBack} className="p-2 text-gray-400 hover:text-white">
@@ -391,7 +436,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Mobile Menu Overlay */}
         {isMobileMenuOpen && (
-          <div className="md:hidden absolute top-full left-0 w-full bg-black/95 backdrop-blur-xl border-b border-white/10 shadow-2xl animate-in slide-in-from-top-5 z-40">
+          <div className="lg:hidden absolute top-full left-0 w-full bg-black/95 backdrop-blur-xl border-b border-white/10 shadow-2xl animate-in slide-in-from-top-5 z-40">
             <div className="px-4 py-6 space-y-4">
               {currentUser && (
                 <button 
