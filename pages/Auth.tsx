@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { UserRole, User } from '../types';
 import { authService } from '../services/authService';
-import { Mail, Lock, User as UserIcon, ArrowRight, PartyPopper, KeyRound, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 
 // Shared Logo Component reverted to clean neon style
 const UnikialaLogo: React.FC<{ className?: string }> = ({ className = "" }) => (
@@ -59,7 +59,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         }
       } else if (authMode === 'SIGNUP') {
         if (!name || !email || !password) {
-          setError('Preencha todos os campos.');
+          setError('Preencha todos os campos obrigatórios.');
           setIsLoading(false);
           return;
         }
@@ -69,6 +69,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           setError(result.error);
         } else if (result.user) {
           onLogin(result.user);
+        } else {
+          setError('Ocorreu uma falha inesperada no registro.');
         }
       } else if (authMode === 'RECOVERY') {
         if (!email) {
@@ -80,17 +82,18 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         if (result.error) {
           setError(result.error);
         } else {
-          setSuccessMessage('Link de recuperação enviado! Verifique seu email (e a caixa de spam).');
+          setSuccessMessage('Link de recuperação enviado! Verifique seu email.');
         }
       }
     } catch (err) {
-      setError('Ocorreu um erro inesperado.');
+      console.error("Auth error:", err);
+      setError('Ocorreu um erro crítico de conexão.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const inputClass = "w-full bg-black/50 border border-gray-700 rounded-xl pl-10 pr-4 py-3 text-white focus:border-unikiala-pink focus:ring-1 focus:ring-unikiala-pink outline-none transition-all";
+  const inputClass = "w-full bg-black/50 border border-gray-700 rounded-xl pl-10 pr-4 py-3 text-white focus:border-unikiala-pink focus:ring-1 focus:ring-unikiala-pink outline-none transition-all disabled:opacity-50";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-unikiala-black relative overflow-hidden px-4">
@@ -136,6 +139,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     placeholder="Seu Nome Completo"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    disabled={isLoading}
                     className={inputClass}
                   />
                 </div>
@@ -148,6 +152,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                   placeholder="Seu Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
                   className={inputClass}
                 />
               </div>
@@ -160,6 +165,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     placeholder="Sua Senha"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    disabled={isLoading}
                     className={inputClass}
                   />
                 </div>
@@ -183,6 +189,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                   <button
                     type="button"
                     onClick={() => setRole(UserRole.USER)}
+                    disabled={isLoading}
                     className={`py-2 rounded-lg border text-sm font-bold transition-all ${role === UserRole.USER ? 'bg-unikiala-pink text-black border-unikiala-pink' : 'bg-transparent border-gray-700 text-gray-400 hover:border-gray-500'}`}
                   >
                     Sou Cliente
@@ -190,6 +197,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                   <button
                     type="button"
                     onClick={() => setRole(UserRole.ORGANIZER)}
+                    disabled={isLoading}
                     className={`py-2 rounded-lg border text-sm font-bold transition-all ${role === UserRole.ORGANIZER ? 'bg-purple-600 text-white border-purple-600' : 'bg-transparent border-gray-700 text-gray-400 hover:border-gray-500'}`}
                   >
                     Sou Organizador
@@ -202,7 +210,12 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 disabled={isLoading}
                 className="w-full bg-white text-black hover:bg-unikiala-pink font-bold py-3 rounded-xl transition-all duration-300 flex items-center justify-center group disabled:opacity-70"
               >
-                {isLoading ? 'Processando...' : (
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Processando...
+                  </>
+                ) : (
                   <>
                     {authMode === 'LOGIN' && 'Entrar na Plataforma'}
                     {authMode === 'SIGNUP' && 'Criar Conta'}
@@ -217,6 +230,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                   <button
                     type="button"
                     onClick={() => { setAuthMode('LOGIN'); setError(''); setSuccessMessage(''); }}
+                    disabled={isLoading}
                     className="text-gray-400 text-sm hover:text-white flex items-center justify-center mx-auto"
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para Login
@@ -231,6 +245,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                         setError('');
                         setSuccessMessage('');
                       }}
+                      disabled={isLoading}
                       className="ml-2 text-unikiala-pink font-bold hover:underline"
                     >
                       {authMode === 'LOGIN' ? 'Cadastre-se' : 'Fazer Login'}
