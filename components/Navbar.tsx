@@ -3,51 +3,24 @@ import React, { useRef, useState, useEffect } from 'react';
 import { UserRole, User, Notification } from '../types';
 import { Ticket, Users, LayoutDashboard, Menu, ChevronLeft, ChevronRight, LogOut, User as UserIcon, X, Bell, CheckCircle, Info, AlertTriangle } from 'lucide-react';
 
-// New Logo Component based on the provided image
+// Simplified Logo Component reverting the last tribal additions
 const UnikialaLogo: React.FC<{ className?: string }> = ({ className = "" }) => (
-  <div className={`flex items-center gap-2 md:gap-3 ${className} group cursor-pointer select-none`}>
-    <div className="relative w-14 md:w-20 h-14 md:h-20 flex items-center justify-center shrink-0">
-      {/* The Tribal Roof and Muringue (SVG recreate) */}
-      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-unikiala-pink group-hover:drop-shadow-neon transition-all duration-300">
-        {/* Slanted Tribal Roof with pattern markers */}
-        <path 
-          d="M10 65 L50 25 L90 65" 
-          fill="none" 
-          stroke="currentColor" 
-          strokeWidth="5" 
-          strokeLinecap="round" 
-          strokeDasharray="1, 5"
-        />
-        {/* Outer roof lines */}
-        <path d="M15 68 L50 33 L85 68" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.3" />
-        
-        {/* The Muringue (Clay Pot) */}
-        <path 
-          d="M44 55 C44 55 36 60 36 72 C36 82 42 88 50 88 C58 88 64 82 64 72 C64 60 56 55 56 55 L56 48 L44 48 Z" 
-          fill="currentColor" 
-        />
-        {/* Tribal bands on the pot */}
-        <rect x="42" y="70" width="16" height="1.5" fill="black" opacity="0.4" />
-        <rect x="42" y="74" width="16" height="1.5" fill="black" opacity="0.4" />
-      </svg>
-    </div>
-    
+  <div className={`flex items-center gap-2 ${className} group cursor-pointer select-none`}>
     <div className="flex flex-col justify-center">
       <div className="flex items-center">
         <span className="text-2xl md:text-5xl font-display font-bold text-white tracking-tighter group-hover:text-unikiala-pink transition-colors duration-300 flex items-baseline">
           UN
-          <span className="relative inline-block mx-0.5">
+          <span className="relative inline-block mx-0.5 text-unikiala-pink">
             I
-            <span className="absolute -top-1 md:-top-2 left-1/2 -translate-x-1/2 w-4 md:w-6 h-2 md:h-3 bg-unikiala-pink rounded-t-full shadow-neon"></span>
           </span>
           K
-          <span className="relative inline-block mx-0.5">
+          <span className="relative inline-block mx-0.5 text-unikiala-pink">
             I
-            <span className="absolute -top-1 md:-top-2 left-1/2 -translate-x-1/2 w-4 md:w-6 h-2 md:h-3 bg-unikiala-pink rounded-t-full shadow-neon"></span>
           </span>
           ALA
         </span>
       </div>
+      <div className="h-0.5 w-full bg-gradient-to-r from-unikiala-pink to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-neon"></div>
     </div>
   </div>
 );
@@ -260,7 +233,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20 md:h-28">
             <div className="flex items-center gap-4 md:gap-8">
-               {/* Updated Tribal Logo */}
+               {/* Updated Logo without tribal icons */}
               <div 
                 onClick={handleLogoClick}
                 className="flex items-center"

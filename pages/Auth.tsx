@@ -4,42 +4,23 @@ import { UserRole, User } from '../types';
 import { authService } from '../services/authService';
 import { Mail, Lock, User as UserIcon, ArrowRight, PartyPopper, KeyRound, ArrowLeft } from 'lucide-react';
 
-// Shared Logo Component
+// Shared Logo Component reverted to clean neon style
 const UnikialaLogo: React.FC<{ className?: string }> = ({ className = "" }) => (
   <div className={`flex flex-col items-center gap-4 ${className} select-none`}>
-    <div className="relative w-24 h-24 flex items-center justify-center">
-      <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full text-unikiala-pink drop-shadow-neon">
-        {/* Slanted Tribal Roof */}
-        <path 
-          d="M10 65 L50 25 L90 65" 
-          fill="none" 
-          stroke="currentColor" 
-          strokeWidth="6" 
-          strokeLinecap="round" 
-          strokeDasharray="2, 6"
-        />
-        {/* Pot */}
-        <path 
-          d="M44 55 C44 55 36 60 36 72 C36 82 42 88 50 88 C58 88 64 82 64 72 C64 60 56 55 56 55 L56 48 L44 48 Z" 
-          fill="currentColor" 
-        />
-      </svg>
-    </div>
     <div className="flex items-baseline">
-      <span className="text-4xl font-display font-bold text-white tracking-tighter">
+      <span className="text-5xl font-display font-bold text-white tracking-tighter">
         UN
-        <span className="relative inline-block mx-0.5">
+        <span className="relative inline-block mx-0.5 text-unikiala-pink drop-shadow-neon">
           I
-          <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-4 h-2.5 bg-unikiala-pink rounded-t-full shadow-neon"></span>
         </span>
         K
-        <span className="relative inline-block mx-0.5">
+        <span className="relative inline-block mx-0.5 text-unikiala-pink drop-shadow-neon">
           I
-          <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-4 h-2.5 bg-unikiala-pink rounded-t-full shadow-neon"></span>
         </span>
         ALA
       </span>
     </div>
+    <div className="h-1 w-24 bg-gradient-to-r from-transparent via-unikiala-pink to-transparent shadow-neon"></div>
   </div>
 );
 
